@@ -14,10 +14,9 @@ if hasattr(sys.stdout, 'reconfigure'):
     sys.stderr.reconfigure(encoding='utf-8')
 
 WORKSPACE_DIR = Path(__file__).parent.resolve()
-SKILL_SCRIPT_PATH = Path("E:/Antigravity Playground/Github/last30days-skill/skills/last30days/scripts/last30days.py").resolve()
+SKILL_SCRIPT_PATH = (WORKSPACE_DIR / "last30days-skill" / "skills" / "last30days" / "scripts" / "last30days.py").resolve()
 PYTHON_BIN = sys.executable
 
-# Function to automatically find an open port
 def find_available_port(preferred_ports=[3000, 8000, 8080, 9000]):
     for p in preferred_ports:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -32,88 +31,8 @@ def find_available_port(preferred_ports=[3000, 8000, 8080, 9000]):
 PORT = find_available_port([3000, 8000, 8080, 9000])
 
 print(f"[Server] Workspace Root: {WORKSPACE_DIR}", flush=True)
-print(f"[Server] last30days.py: {SKILL_SCRIPT_PATH}", flush=True)
-
-SAMPLE_DATASETS = {
-    "openai": {
-        "query_topic": "OpenAI",
-        "window_days": 30,
-        "schema_version": "1.2",
-        "as_of_date": "2026-08-18",
-        "source_status": {"hackernews": "ok", "reddit": "ok", "jobs": "ok", "x": "ok", "youtube": "ok"},
-        "findings": [
-            {
-                "candidate_id": "hn-412341",
-                "source": "hackernews",
-                "title": "OpenAI's head of ethics leaves less than a year after joining",
-                "url": "https://news.ycombinator.com/item?id=412341",
-                "summary": "Discussion regarding recent leadership departures at OpenAI ahead of their upcoming funding rounds and strategic shifts towards agentic systems.",
-                "published_at": "2026-08-11",
-                "relevance_score": 0.94,
-                "engagement": {"points": 523, "comments": 489}
-            },
-            {
-                "candidate_id": "reddit-1vompjl",
-                "source": "reddit",
-                "title": "OpenAI talent exodus raises 'huge red flag' ahead of IPO",
-                "url": "https://www.reddit.com/r/technology/comments/1vompjl/",
-                "summary": "Community analysis of key executive moves including finance and safety directors leaving. High discussion volume on stock lockups and valuation expectations.",
-                "published_at": "2026-08-14",
-                "relevance_score": 0.89,
-                "engagement": {"score": 2994, "num_comments": 229}
-            },
-            {
-                "candidate_id": "youtube-yt123",
-                "source": "youtube",
-                "title": "OpenAI Astra Model Architecture & Math Benchmark Deep Dive",
-                "url": "https://youtube.com/watch?v=demo123",
-                "summary": "Technical breakdown of OpenAI's 249-page research collection describing automated mathematical proofs and high-dimensional geometry solvers.",
-                "published_at": "2026-08-05",
-                "relevance_score": 0.86,
-                "engagement": {"views": 184000, "likes": 12500}
-            },
-            {
-                "candidate_id": "github-gh888",
-                "source": "github",
-                "title": "openai/openai-python v1.65.0 Release - Agentic API Interfaces",
-                "url": "https://github.com/openai/openai-python/releases",
-                "summary": "Official SDK update adding native support for persistent session state, background research workers, and structured response schema validation.",
-                "published_at": "2026-08-12",
-                "relevance_score": 0.82,
-                "engagement": {"stars": 24500, "forks": 3800}
-            }
-        ]
-    },
-    "claude 3.7": {
-        "query_topic": "Claude 3.7",
-        "window_days": 30,
-        "schema_version": "1.2",
-        "as_of_date": "2026-08-18",
-        "source_status": {"hackernews": "ok", "reddit": "ok", "x": "ok", "github": "ok"},
-        "findings": [
-            {
-                "candidate_id": "hn-9988",
-                "source": "hackernews",
-                "title": "Claude 3.7 Sonnet Hybrid Reasoning: Benchmark Analysis",
-                "url": "https://news.ycombinator.com/item?id=9988",
-                "summary": "Developers praise Claude 3.7's dynamic thinking budget control. Significant jump in frontend UI generation, refactoring, and complex codebase context retention.",
-                "published_at": "2026-08-15",
-                "relevance_score": 0.98,
-                "engagement": {"points": 890, "comments": 640}
-            },
-            {
-                "candidate_id": "reddit-claude1",
-                "source": "reddit",
-                "title": "Why Claude 3.7 is currently the king of coding agents",
-                "url": "https://reddit.com/r/ClaudeAI/comments/claude37",
-                "summary": "User benchmark comparison across complex React and Rust repositories showing zero-shot bug fixes and superior architectural reasoning.",
-                "published_at": "2026-08-13",
-                "relevance_score": 0.95,
-                "engagement": {"score": 1850, "num_comments": 310}
-            }
-        ]
-    }
-}
+print(f"[Server] last30days.py Script Path: {SKILL_SCRIPT_PATH}", flush=True)
+print(f"[Server] Python Binary: {PYTHON_BIN}", flush=True)
 
 class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
     def log_message(self, format, *args):
@@ -177,6 +96,7 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
             "python_bin": PYTHON_BIN,
             "script_path": str(SKILL_SCRIPT_PATH),
             "script_exists": script_exists,
+            "original_repo": "https://github.com/mvanhorn/last30days-skill.git",
             "environment": {
                 "OPENAI_API_KEY": bool(os.getenv("OPENAI_API_KEY")),
                 "PERPLEXITY_API_KEY": bool(os.getenv("PERPLEXITY_API_KEY")),
@@ -185,13 +105,11 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
                 "XAI_API_KEY": bool(os.getenv("XAI_API_KEY"))
             },
             "sources": [
-                {"name": "HackerNews", "type": "Keyless (Algolia API)", "status": "Active"},
-                {"name": "Reddit", "type": "Keyless (Arctic/RSS)", "status": "Active"},
-                {"name": "YouTube", "type": "Keyless (Invidious/Public)", "status": "Active"},
-                {"name": "GitHub", "type": "Keyless (GitHub REST API)", "status": "Active"},
-                {"name": "Polymarket", "type": "Keyless (Gamma API)", "status": "Active"},
-                {"name": "Jobs", "type": "Keyless (Ashby/Lever)", "status": "Active"},
-                {"name": "X / Twitter", "type": "Optional Key / Scraper", "status": "Available"}
+                {"name": "alphaXiv", "type": "MCP Tools (discover_papers, get_paper_content, answer_pdf_queries)", "status": "Active"},
+                {"name": "Google News", "type": "RSS2JSON + Multi-Publisher Clustering", "status": "Active"},
+                {"name": "HackerNews", "type": "Algolia Realtime API", "status": "Active"},
+                {"name": "Reddit", "type": "Public JSON / RSS Engine", "status": "Active"},
+                {"name": "GitHub", "type": "GitHub REST API (Stars 2-Tier Sort)", "status": "Active"}
             ]
         }
         self.send_json(response_data)
@@ -217,11 +135,8 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
         print(f"[API /api/search] Querying topic: '{topic}', days: {days}, depth: {depth}", flush=True)
 
         if not SKILL_SCRIPT_PATH.exists():
-            print(f"[API Warning] Script path missing. Returning sample dataset.", flush=True)
-            sample = SAMPLE_DATASETS.get(topic.lower(), SAMPLE_DATASETS['openai'])
-            sample['query_topic'] = topic
-            sample['is_mock'] = True
-            self.send_json(sample)
+            print(f"[API Warning] last30days.py script path not found. Falling back to live browser fetcher.", flush=True)
+            self.send_json({"findings": []}, status=404)
             return
 
         cmd = [
@@ -247,7 +162,7 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
                 capture_output=True,
                 text=True,
                 encoding='utf-8',
-                timeout=120
+                timeout=60
             )
 
             stdout_text = res.stdout or ''
@@ -257,34 +172,41 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
             if json_start != -1 and json_end != -1 and json_end > json_start:
                 json_str = stdout_text[json_start:json_end+1]
                 parsed_data = json.loads(json_str)
-                self.send_json(parsed_data)
-                return
-            else:
-                print(f"[API Warning] Could not parse JSON from CLI output.", flush=True)
-                
-        except Exception as e:
-            print(f"[API Exception] Subprocess error: {e}", flush=True)
 
-        fallback = SAMPLE_DATASETS.get(topic.lower(), {
+                # Format results into findings list expected by frontend UI
+                results_list = parsed_data.get('results') or parsed_data.get('findings') or []
+                formatted_findings = []
+
+                for r in results_list:
+                    formatted_findings.append({
+                        "candidate_id": r.get("id") or r.get("candidate_id") or f"cli-{os.urandom(4).hex()}",
+                        "source": r.get("source", "web"),
+                        "title": r.get("title", topic),
+                        "url": r.get("url", "#"),
+                        "summary": r.get("summary") or r.get("text", ""),
+                        "published_at": r.get("published_at") or r.get("date", "최근"),
+                        "relevance_score": r.get("relevance_score", 0.85),
+                        "engagement": r.get("engagement") or {"score_by_people": r.get("score", 500)}
+                    })
+
+                if len(formatted_findings) > 0:
+                    self.send_json({
+                        "query_topic": topic,
+                        "window_days": int(days),
+                        "findings": formatted_findings,
+                        "raw_cli_output": parsed_data
+                    })
+                    return
+
+        except Exception as e:
+            print(f"[API Subprocess Error] {e}", flush=True)
+
+        # If CLI output had 0 items (e.g. rate limits), return empty findings so frontend seamlessly executes live client-side router!
+        self.send_json({
             "query_topic": topic,
             "window_days": int(days),
-            "schema_version": "1.2",
-            "as_of_date": "2026-08-18",
-            "source_status": {"hackernews": "ok", "reddit": "ok"},
-            "findings": [
-                {
-                    "candidate_id": f"finding-{os.urandom(4).hex()}",
-                    "source": "hackernews",
-                    "title": f"Recent discussions on {topic}",
-                    "url": f"https://news.ycombinator.com/item?id=recent",
-                    "summary": f"Community feedback and insights gathered on {topic} over the past {days} days.",
-                    "published_at": "2026-08-18",
-                    "relevance_score": 0.88,
-                    "engagement": {"points": 142, "comments": 68}
-                }
-            ]
+            "findings": []
         })
-        self.send_json(fallback)
 
     def send_json(self, data, status=200):
         body = json.dumps(data, ensure_ascii=False).encode('utf-8')
