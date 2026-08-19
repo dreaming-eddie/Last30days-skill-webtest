@@ -5,27 +5,24 @@
 
 ---
 
-## 🌟 주요 기능 (Key Features)
+## 🌟 주요 핵심 엔진 및 정렬 규칙 (Engine & Rules)
 
-### 1. 🎨 파란색 파장 글래스모피즘 디자인 (Blue Wave Glass UI)
+### 1. 🐙 GitHub 2단계 다중 정렬 규칙 (GitHub 2-Tier Sorting Rule)
+- **1순위**: **키워드 적합도 (Keyword Relevance Score)** 높은 순 정렬.
+- **2순위**: 적합도가 비슷한 항목 중 **스타 수(Stars Count) 내림차순** 정렬 (`sort=stars&order=desc` API 적용).
+
+### 2. 🌐 한영 분동 지능형 라우터 (Bilingual Multi-Branch Query Router)
+- **한영 혼용 키워드 분동 조회**: `"Nvidia 실적"`, `"클로드 3.7"`처럼 한글이 포함된 검색어 입력 시, 한글 키워드와 영문 핵심어(`"Nvidia"`, `"Nvidia earnings"`)를 자동 분리 처리합니다.
+- **해외 소셜 플랫폼 연동**: Reddit, HackerNews, GitHub, Polymarket에는 정제된 영문 쿼리를 전송하여 해외 커뮤니티 토론 데이터가 100% 수집됩니다.
+- **국내/글로벌 뉴스 연동**: Google News Korea(`hl=ko&gl=KR`) 및 Google News US(`hl=en-US&gl=US`)에 동시 전송하여 국내 속보와 글로벌 기사를 통합 제공합니다.
+
+### 3. 📅 엄격한 조사 기간 차단 엔진 (Strict Lookback Window Cutoff)
+- 사용자가 선택한 **Lookback Days (7일, 14일, 30일, 90일)** 기준 타임스탬프(`cutoffMs`)를 엄격하게 계산합니다.
+- **수집 단계 타임스탬프 필터**: 지정한 일자보다 단 1초라도 오래된 과거 데이터(20년 전 글 등)는 수집 즉시 **100% 자동 폐기(Discard)**됩니다.
+
+### 4. 🎨 파란색 파장 라이트 글래스모피즘 UI
 - **화이트 배경 & 푸른 물결 캔버스**: 배경에 넘실거리는 파란색 파장(Blue Wave Ripple) 애니메이션과 소프트 글로우 적용.
-- **라이트 글래스모피즘**: 반투명 글래스 패널(`rgba(255, 255, 255, 0.85)` + `backdrop-filter: blur(20px)`), 부드러운 블루 글래스 테두리와 그림자 효과.
-
-### 2. ⚡ 24시간 실시간 핫 트렌드 (Real-time 24H Hot Trends)
-- 웹페이지 접속 시 **최근 24시간 동안 실시간으로 가장 핫한 주제**를 파이프라인으로 자동 추출하여 칩(Chip)으로 제공합니다.
-- `🔄 트렌드 새로고침` 버튼 클릭 시 실시간 핫 이슈가 즉시 갱신됩니다.
-
-### 3. 🌐 다중 실시간 데이터 수집 파이프라인 (Multi-Source Pipeline)
-- 📰 **Google News RSS**: 최신 속보 기사, 게시 일시, 출판사(TechCrunch, Reuters, Bloomberg 등) 실시간 수집.
-- 🌐 **Web Search API**: DuckDuckGo / 웹 검색 엔진 검색 결과.
-- 🔴 **Reddit**: 서브레딧 게시글, 추천 수, 댓글 수.
-- 🟠 **HackerNews**: 개발자 커뮤니티 토론, 포인트, 댓글 수.
-- 🐙 **GitHub**: 실시간 스타(Star) 수, 포크(Fork) 수, 오픈소스 기술 트렌드.
-- 🎲 **Polymarket**: 예측 시장 이벤트 확률 및 거래 볼륨.
-
-### 4. 🚀 100% 클라우드 & 정적 배포 지원 (Netlify & GitHub Pages Ready)
-- **로컬 백엔드 모드**: Python `server.py`를 통해 local `last30days.py` CLI 직접 실행.
-- **클라우드/배포 모드**: Netlify 또는 GitHub Pages 배포 시, 브라우저가 직접 실시간 공개 API(HackerNews, Reddit, GitHub, Google News)를 다이렉트 수집하므로 **별도 서버 없이 100% 무료 배포 가능**.
+- **스크롤바 페더링(Feathering)**: 핫 트렌드 및 플랫폼 필터 양 끝이 부드럽게 페이드아웃되는 `mask-image` 스크롤 디자인 적용.
 
 ---
 
@@ -46,28 +43,14 @@ python server.py
 
 ---
 
-### 2. GitHub Pages 배포 (1분 완료)
+### 2. GitHub Pages 배포
 
-이미 `git init` 및 로컬 커밋 작성이 완료되어 있습니다.
-
-1. [GitHub.com](https://github.com)에서 새로운 리포지토리 생성 (예: `last30days-web-dashboard`)
-2. 터미널에서 코드 푸시:
+1. [GitHub.com](https://github.com) 리포지토리: [https://github.com/dreaming-eddie/Last30days-skill-webtest](https://github.com/dreaming-eddie/Last30days-skill-webtest)
+2. 코드 변경사항 터미널에서 푸시:
    ```bash
-   git remote add origin https://github.com/본인계정명/last30days-web-dashboard.git
-   git branch -M main
-   git push -u origin main
+   git push origin main
    ```
-3. GitHub 리포지토리 페이지 → **Settings** → **Pages** 클릭
-4. Source를 **`Deploy from a branch`**, Branch를 **`main` / `/(root)`** 선택 후 **Save** 클릭!  
-👉 약 1분 후 생성되는 `https://본인계정명.github.io/last30days-web-dashboard/` URL에서 바로 사용 가능합니다.
-
----
-
-### 3. Netlify 배포 (Netlify Serverless)
-
-1. Netlify에 로그인 후 **Add new site** → **Import an existing project** 선택
-2. GitHub 리포지토리 연결 후 **Deploy** 클릭
-3. [`netlify.toml`](file:///E:/Antigravity%20Playground/Github/Last30days-skill%20Website%20Test/netlify.toml)과 [`netlify/functions/search.js`](file:///E:/Antigravity%20Playground/Github/Last30days-skill%20Website%20Test/netlify/functions/search.js)에 의해 서버리스 라우팅이 자동 설정되어 100% 동작합니다.
+3. GitHub Pages가 설정되어 있어 **[https://dreaming-eddie.github.io/Last30days-skill-webtest/](https://dreaming-eddie.github.io/Last30days-skill-webtest/)**에서 100% 실시간 동작합니다.
 
 ---
 
@@ -75,7 +58,7 @@ python server.py
 
 ```text
 E:\Antigravity Playground\Github\Last30days-skill Website Test\
-├── index.html                # 단일 페이지 React 앱 & 파란색 파장 UI & 실시간 수집 엔진
+├── index.html                # React 단일 페이지 & GitHub Stars 2단계 정렬 & 한영 라우팅 엔진
 ├── server.py                 # Python HTTP 백엔드 (포트 자동 탐지 & CLI 브릿지)
 ├── netlify.toml              # Netlify 서버리스 라우팅 설정 파일
 ├── netlify/
@@ -83,17 +66,7 @@ E:\Antigravity Playground\Github\Last30days-skill Website Test\
 │       └── search.js         # Netlify 서버리스 실시간 수집 함수
 ├── src/
 │   ├── index.css             # 파란색 파장 라이트 글래스모피즘 CSS 스타일시트
-│   ├── App.jsx               # 대시보드 컴포넌트
-│   └── components/           # UI 세부 컴포넌트 (검색, 피드, 요약, 내보내기, 진단)
-├── README.md                 # 프로젝트 문서 및 사용 가이드
+│   └── components/           # UI 세부 컴포넌트
+├── README.md                 # 프로젝트 문서 및 엔진 설명서
 └── package.json              # 프로젝트 설정 파일
 ```
-
----
-
-## 🛠️ 주요 기능 사용 팁
-
-- **검색 실행**: 상단 검색창에 키워드(예: `Claude 3.7`, `Nvidia`, `React 19`) 입력 후 **`🌊 딥 리서치 실행`** 클릭.
-- **기간 및 정밀도 조절**: 7일~90일 Lookback Window 조절, ⚡ Quick(빠름) / 🔍 Deep(정밀) 탐색 모드 선택.
-- **리포트 내보내기**: 상단 **`📥 리포트 / JSON 내보내기`** 버튼을 눌러 Markdown 보고서 작성 또는 JSON 데이터 다운로드.
-- **시스템 진단**: **`🩺 시스템 진단 Doctor`** 버튼 클릭 시 수집 소스 연결 상태 확인.

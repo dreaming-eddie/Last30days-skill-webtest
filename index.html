@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>last30days · 한영 혼용 지능형 멀티 파이프라인 딥 리서치</title>
+  <title>last30days · GitHub Stars 2단계 정렬 & 한영 멀티 딥 리서치</title>
   <meta name="description" content="What's happened in the last 30 days? Real human opinions from Reddit, HackerNews, YouTube, X, GitHub, Polymarket - Scored by the People." />
 
   <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
@@ -214,7 +214,6 @@
   <script type="text/babel">
     const { useState, useEffect } = React;
 
-    // Korean to English Keyword Translation & Concept Dictionary
     const BILINGUAL_DICTIONARY = {
       '실적': 'earnings',
       '특징': 'features',
@@ -232,7 +231,6 @@
       '주식': 'stock'
     };
 
-    // Smart Mixed Language Query Normalizer
     function processMixedLanguageQuery(rawQuery) {
       const q = (rawQuery || '').trim();
       const engTokens = q.match(/[A-Za-z0-9.]+/g) || [];
@@ -241,7 +239,6 @@
       let primaryEngQuery = engTokens.join(' ');
       let expandedEngQueries = [];
 
-      // If user typed Korean words like "Nvidia 실적" or "클로드 3.7"
       if (korTokens.length > 0) {
         let translatedTerms = [];
         korTokens.forEach(kt => {
@@ -256,7 +253,6 @@
           expandedEngQueries.push(translatedTerms.join(' '));
         }
 
-        // If English token exists (e.g. "Nvidia" in "Nvidia 실적"), ensure standalone "Nvidia" is queried for HN/Reddit/GitHub!
         if (primaryEngQuery) {
           expandedEngQueries.push(primaryEngQuery);
         }
@@ -266,12 +262,11 @@
 
       return {
         original: q,
-        koreanQuery: q, // for Korean Google News
-        globalQueries: [...new Set(expandedEngQueries.filter(x => x.length > 0))] // for Reddit, HN, GitHub, Polymarket
+        koreanQuery: q,
+        globalQueries: [...new Set(expandedEngQueries.filter(x => x.length > 0))]
       };
     }
 
-    // Smart Relevance Score Calculator for Mixed Language
     function calculateBilingualRelevance(queryObj, title = '', summary = '') {
       const tNorm = (title || '').toLowerCase();
       const sNorm = (summary || '').toLowerCase();
@@ -279,14 +274,12 @@
       const origNorm = queryObj.original.toLowerCase();
       const globalTargets = queryObj.globalQueries.map(g => g.toLowerCase());
 
-      // Check full title match against original or expanded English targets
       for (const target of [origNorm, ...globalTargets]) {
         if (!target) continue;
         if (tNorm.includes(target)) return 0.98;
         if (sNorm.includes(target)) return 0.85;
       }
 
-      // Token match
       const tokens = origNorm.split(/\s+/).concat(globalTargets.flatMap(g => g.split(/\s+/)));
       let matched = 0;
       tokens.forEach(tok => {
@@ -298,25 +291,25 @@
       return 0.40;
     }
 
-    // Direct Live Client-Side Fetcher with Bilingual Multi-Branch Routing
+    // Direct Live Client-Side Fetcher with GitHub Stars 2-Tier Sorting & Strict Date Filtering
     async function fetchLiveClientResearch(queryTopic, searchDays = 30, searchDepth = 'quick') {
       const qObj = processMixedLanguageQuery(queryTopic);
-      console.log(`[Bilingual Router] Original: "${qObj.original}", Global Eng Queries:`, qObj.globalQueries);
+      console.log(`[GitHub 2-Tier Engine] Query: "${qObj.original}", Global Targets:`, qObj.globalQueries);
 
       const rawFindings = [];
       const sourceStatus = {
         googlenews_kr: "ok",
-        googlenews_us: "ok",
         hackernews: "ok",
         reddit: "ok",
         github: "ok",
         polymarket: "ok"
       };
 
-      const perPage = searchDepth === 'deep' ? 20 : 10;
+      const perPage = searchDepth === 'deep' ? 25 : 12;
       const nowMs = Date.now();
       const cutoffMs = nowMs - (Number(searchDays) * 24 * 60 * 60 * 1000);
       const cutoffSec = Math.floor(cutoffMs / 1000);
+      const cutoffDate = new Date(cutoffMs).toISOString().split('T')[0];
 
       // 1. Google News Korea (Korean Query)
       try {
@@ -344,34 +337,9 @@
         }
       } catch (err) {}
 
-      // 2. Global English Sources (HackerNews, Reddit, GitHub, Polymarket) using Global English Queries
+      // 2. Global English Sources
       for (const globalQuery of qObj.globalQueries) {
         
-        // Google News US / Global
-        try {
-          const gnewsUsUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(`https://news.google.com/rss/search?q=${encodeURIComponent(globalQuery)}+when:${searchDays}d&hl=en-US&gl=US&ceid=US:en`)}`;
-          const res = await fetch(gnewsUsUrl);
-          if (res.ok) {
-            const data = await res.json();
-            (data.items || []).slice(0, 10).forEach(item => {
-              if (item.title && item.link) {
-                const cleanTitle = item.title.replace(/\s+-\s+[^-]+$/, '');
-                const publisher = item.author || 'Google News US';
-                rawFindings.push({
-                  candidate_id: `gnews-us-${osHash(item.link)}`,
-                  source: 'googlenews',
-                  title: cleanTitle,
-                  url: item.link,
-                  summary: item.description ? item.description.replace(/<[^>]*>/g, '').slice(0, 220) + '...' : `Global News report via ${publisher}`,
-                  published_at: item.pubDate ? item.pubDate.split(' ')[0] : new Date().toISOString().split('T')[0],
-                  published_timestamp: item.pubDate ? new Date(item.pubDate).getTime() : nowMs,
-                  engagement: { publisher: `${publisher} (글로벌)`, points: 310, score_by_people: 850 }
-                });
-              }
-            });
-          }
-        } catch (err) {}
-
         // HackerNews Algolia API
         try {
           const hnUrl = `https://hn.algolia.com/api/v1/search_by_date?query=${encodeURIComponent(globalQuery)}&tags=story&numericFilters=created_at_i>${cutoffSec}&hitsPerPage=${perPage}`;
@@ -424,24 +392,27 @@
           }
         } catch (err) {}
 
-        // GitHub Repos API
+        // GitHub Repos API with explicit `sort=stars&order=desc` parameter!
         try {
-          const ghUrl = `https://api.github.com/search/repositories?q=${encodeURIComponent(globalQuery)}&sort=updated&per_page=${perPage}`;
+          const ghUrl = `https://api.github.com/search/repositories?q=${encodeURIComponent(globalQuery)}+pushed:>${cutoffDate}&sort=stars&order=desc&per_page=${perPage}`;
           const res = await fetch(ghUrl);
           if (res.ok) {
             const data = await res.json();
             (data.items || []).forEach(repo => {
-              const humanScore = (repo.stargazers_count || 0) + (repo.forks_count || 0) * 3;
+              const stars = repo.stargazers_count || 0;
+              const forks = repo.forks_count || 0;
+              const humanScore = stars + forks * 3;
               const pubDateStr = repo.updated_at ? repo.updated_at.split('T')[0] : new Date().toISOString().split('T')[0];
+              
               rawFindings.push({
                 candidate_id: `gh-${repo.id}`,
                 source: 'github',
                 title: repo.full_name,
                 url: repo.html_url,
-                summary: repo.description || `GitHub open source project with ${repo.stargazers_count} stars and ${repo.forks_count} forks.`,
+                summary: repo.description || `GitHub open source project with ⭐ ${stars.toLocaleString()} stars and 🍴 ${forks.toLocaleString()} forks.`,
                 published_at: pubDateStr,
                 published_timestamp: new Date(pubDateStr).getTime(),
-                engagement: { stars: repo.stargazers_count || 0, forks: repo.forks_count || 0, score_by_people: humanScore }
+                engagement: { stars: stars, forks: forks, score_by_people: humanScore }
               });
             });
           }
@@ -469,8 +440,6 @@
         ...item,
         relevance_score: calculateBilingualRelevance(qObj, item.title, item.summary)
       }));
-
-      scoredFindings.sort((a, b) => b.relevance_score - a.relevance_score);
 
       return {
         query_topic: queryTopic,
@@ -553,7 +522,7 @@
         fetch('/api/doctor')
           .then(res => res.json())
           .then(data => setDoctorStatus(data))
-          .catch(() => setDoctorStatus({ status: 'ok', mode: 'Bilingual Multi-Branch Routing Engine' }));
+          .catch(() => setDoctorStatus({ status: 'ok', mode: 'GitHub Stars 2-Tier Sorting Engine' }));
 
         handleSearch('Nvidia 실적', 30, 'quick');
       }, []);
@@ -634,7 +603,15 @@
         return true;
       });
 
+      // MULTI-TIER SORTING ALGORITHM INCLUDING GITHUB 2-TIER SORTING
       filteredFindings.sort((a, b) => {
+        // Special Rule for GitHub items: 1st Relevance Score, 2nd Stars Count Descending!
+        if (a.source === 'github' && b.source === 'github') {
+          const relDiff = (b.relevance_score || 0) - (a.relevance_score || 0);
+          if (Math.abs(relDiff) > 0.05) return relDiff;
+          return (b.engagement?.stars || 0) - (a.engagement?.stars || 0);
+        }
+
         if (sortBy === 'relevance') return (b.relevance_score || 0) - (a.relevance_score || 0);
         if (sortBy === 'scored_by_people') {
           const scoreA = a.engagement?.score_by_people || a.engagement?.points || a.engagement?.score || a.engagement?.stars || 0;
@@ -664,7 +641,7 @@
                   fontSize: '1.65rem',
                   color: '#ffffff'
                 }}>
-                  🌐
+                  ⭐
                 </div>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -678,11 +655,11 @@
                       fontSize: '0.78rem',
                       fontWeight: '700'
                     }}>
-                      Bilingual Multi-Branch Router Active
+                      GitHub 2-Tier Sort: 1st Relevance, 2nd Stars
                     </span>
                   </div>
                   <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginTop: '3px' }}>
-                    한영 혼용 키워드(예: Nvidia 실적, 클로드 3.7) 자동 분동 수집 파이프라인
+                    GitHub 조회 결과: 1순위 키워드 적합도, 2순위 Stars 내림차순 정렬 연동
                   </p>
                 </div>
               </div>
@@ -745,7 +722,7 @@
                 {isLoading ? (
                   <>
                     <div className="spinner" style={{ width: '18px', height: '18px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%' }} />
-                    <span>한영 분동 지능형 수집 중...</span>
+                    <span>GitHub Stars 정밀 정렬 중...</span>
                   </>
                 ) : (
                   <span>🌊 딥 리서치 실행</span>
@@ -774,7 +751,7 @@
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                   <label style={{ fontSize: '0.8rem', fontWeight: '800', color: 'var(--text-dim)' }}>탐색 깊이 (RESEARCH DEPTH)</label>
                   <span style={{ fontSize: '0.72rem', fontWeight: '700', color: depth === 'deep' ? '#7c3aed' : '#0284c7' }}>
-                    {depth === 'deep' ? '20건 수집 + 다중 파이프라인' : '10건 빠른 수집'}
+                    {depth === 'deep' ? '25건 수집 + 다중 파이프라인' : '12건 빠른 수집'}
                   </span>
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -818,11 +795,11 @@
                   <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span>📊 Sources Breakdown</span>
                     <span style={{ fontSize: '0.78rem', background: '#dcfce7', color: '#15803d', padding: '3px 10px', borderRadius: '12px', fontWeight: '700' }}>
-                      글로벌 쿼리 분동: {bilingualQueries.globalQueries.join(' / ')}
+                      GitHub 2-Tier Sort: 1st Relevance, 2nd Stars
                     </span>
                   </h3>
                   <p style={{ fontSize: '0.84rem', color: 'var(--text-dim)', marginTop: '3px' }}>
-                    검색 키워드 <strong>"{resultsData.query_topic}"</strong>에 대해 국내 뉴스 & 글로벌 커뮤니티 총 <strong>{findings.length}개</strong> 항목 통합 수집
+                    검색 키워드 <strong>"{resultsData.query_topic}"</strong>에 대해 수집된 총 <strong>{findings.length}개</strong> 항목
                   </p>
                 </div>
               </div>
@@ -831,7 +808,7 @@
                 {[
                   { name: 'Reddit', key: 'reddit', icon: '🔴' },
                   { name: 'HackerNews', key: 'hackernews', icon: '🟠' },
-                  { name: 'GitHub', key: 'github', icon: '🐙' },
+                  { name: 'GitHub (Stars 순)', key: 'github', icon: '🐙' },
                   { name: 'Google News', key: 'googlenews', icon: '📰' },
                   { name: 'Polymarket', key: 'polymarket', icon: '🎲' }
                 ].map((src, idx) => {
@@ -920,11 +897,15 @@
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                           <span className={getBadgeClass(item.source)}>{item.source || 'web'}</span>
-                          {humanScore > 0 && (
+                          {eng.stars ? (
+                            <span style={{ fontSize: '0.78rem', fontWeight: '800', color: '#ca8a04', background: '#fefce8', border: '1px solid #fef08a', padding: '3px 10px', borderRadius: '12px' }}>
+                              ⭐ Stars {eng.stars.toLocaleString()}개 (2순위 정렬)
+                            </span>
+                          ) : humanScore > 0 ? (
                             <span style={{ fontSize: '0.78rem', fontWeight: '800', color: '#2563eb', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '3px 10px', borderRadius: '12px' }}>
                               👍 Human Score: {humanScore.toLocaleString()}
                             </span>
-                          )}
+                          ) : null}
                         </div>
                         
                         <span style={{
@@ -939,7 +920,7 @@
                           alignItems: 'center',
                           gap: '4px'
                         }}>
-                          🎯 키워드 일치율 {matchPct}%
+                          🎯 키워드 일치율 {matchPct}% (1순위)
                         </span>
                       </div>
 
@@ -960,11 +941,11 @@
                           {eng.publisher ? <span>📰 {eng.publisher}</span> : null}
                           {eng.points || eng.score ? <span>👍 추천 {eng.points || eng.score}</span> : null}
                           {eng.comments || eng.num_comments ? <span>💬 댓글 {eng.comments || eng.num_comments}개</span> : null}
-                          {eng.stars ? <span>⭐ Stars {eng.stars}</span> : null}
+                          {eng.stars ? <span>⭐ Stars {eng.stars.toLocaleString()}</span> : null}
                           {item.published_at ? <span style={{ color: '#16a34a', fontWeight: '700' }}>📅 {item.published_at}</span> : null}
                         </div>
                         <a href={item.url} target="_blank" style={{ color: '#2563eb', textDecoration: 'none', fontWeight: '700' }}>
-                          게시글 열기 ↗
+                          게시글 / Repo 열기 ↗
                         </a>
                       </div>
                     </div>
