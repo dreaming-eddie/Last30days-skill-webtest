@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>last30days · 스마트 쿼리 확장 & 실시간 소셜 딥 리서치</title>
+  <title>last30days · 엄격한 Lookback Window 날짜 검증 딥 리서치</title>
   <meta name="description" content="What's happened in the last 30 days? Real human opinions from Reddit, HackerNews, YouTube, X, GitHub, Polymarket - Scored by the People." />
 
   <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
@@ -215,7 +215,6 @@
   <script type="text/babel">
     const { useState, useEffect } = React;
 
-    // Smart Synonym / Acronym Expansion Dictionary
     const SYNONYM_MAP = {
       'hr': ['hr', 'human resources', 'people operations', 'hr tech', 'recruiting', 'hiring'],
       'ai': ['ai', 'artificial intelligence', 'llm', 'generative ai', 'machine learning'],
@@ -239,7 +238,6 @@
       return [...new Set(terms)];
     }
 
-    // Smart Relevance Score Calculator with Acronym & Word Boundary Matching
     function calculateStrictRelevance(query, title = '', summary = '') {
       const qNorm = (query || '').toLowerCase().trim();
       const tNorm = (title || '').toLowerCase();
@@ -247,11 +245,9 @@
 
       if (!qNorm) return 0.5;
 
-      // Check expanded synonyms for short terms like "HR"
       const expanded = expandQueryTerms(qNorm).map(s => s.toLowerCase());
 
       for (const syn of expanded) {
-        // Word boundary regex matching (e.g. \bhr\b or "human resources")
         const rx = new RegExp(`\\b${syn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
         if (rx.test(tNorm) || tNorm.includes(syn)) {
           if (tNorm === syn) return 0.99;
@@ -260,12 +256,10 @@
         }
       }
 
-      // Check in summary
       for (const syn of expanded) {
         if (sNorm.includes(syn)) return 0.76;
       }
 
-      // Token match fallback
       const tokens = qNorm.split(/\s+/).filter(t => t.length > 0);
       let matched = 0;
       tokens.forEach(tok => {
@@ -277,9 +271,9 @@
       return 0.30;
     }
 
-    // Direct Live Client-Side Fetcher with Acronym Expansion & Full Source Coverage
+    // Direct Live Client-Side Fetcher with STRICT LOOKBACK WINDOW DATE ENFORCEMENT
     async function fetchLiveClientResearch(queryTopic, searchDays = 30, searchDepth = 'quick') {
-      console.log(`[Smart Research Engine] Topic: "${queryTopic}", Days: ${searchDays}, Depth: ${searchDepth}`);
+      console.log(`[Strict Date Engine] Topic: "${queryTopic}", Lookback Window: ${searchDays} days, Depth: ${searchDepth}`);
       const rawFindings = [];
       const sourceStatus = {
         googlenews: "ok",
@@ -287,19 +281,29 @@
         reddit: "ok",
         github: "ok",
         polymarket: "ok",
-        arxiv: "ok",
-        websearch: "ok"
+        arxiv: "ok"
       };
 
-      const perPage = searchDepth === 'deep' ? 20 : 10;
+      const perPage = searchDepth === 'deep' ? 25 : 12;
       const searchTerms = expandQueryTerms(queryTopic);
 
-      console.log('[Smart Research Engine] Expanded Search Terms:', searchTerms);
+      // STRICT CUTOFF TIMESTAMP CALCULATION
+      const nowMs = Date.now();
+      const cutoffMs = nowMs - (Number(searchDays) * 24 * 60 * 60 * 1000);
+      const cutoffSec = Math.floor(cutoffMs / 1000);
+
+      // Map searchDays to Reddit 't' parameter (hour, day, week, month, year, all)
+      let redditTimeParam = 'month';
+      if (searchDays <= 1) redditTimeParam = 'day';
+      else if (searchDays <= 7) redditTimeParam = 'week';
+      else if (searchDays <= 30) redditTimeParam = 'month';
+      else if (searchDays <= 365) redditTimeParam = 'year';
+      else redditTimeParam = 'all';
 
       for (const q of searchTerms.slice(0, 3)) {
-        // 1. Google News RSS API (Without strict quote wrappers so short queries like HR return articles!)
+        // 1. Google News RSS API with `when:${searchDays}d` parameter for strict date filtering
         try {
-          const googleRssUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(`https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-US&gl=US&ceid=US:en`)}`;
+          const googleRssUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(`https://news.google.com/rss/search?q=${encodeURIComponent(q)}+when:${searchDays}d&hl=en-US&gl=US&ceid=US:en`)}`;
           const res = await fetch(googleRssUrl);
           if (res.ok) {
             const data = await res.json();
@@ -307,6 +311,7 @@
               if (item.title && item.link) {
                 const cleanTitle = item.title.replace(/\s+-\s+[^-]+$/, '');
                 const publisher = item.author || (item.title.match(/-\s+([^-]+)$/) || [])[1] || 'Google News';
+                const pubDateStr = item.pubDate ? item.pubDate.split(' ')[0] : new Date().toISOString().split('T')[0];
                 
                 rawFindings.push({
                   candidate_id: `gnews-${osHash(item.link)}`,
@@ -314,7 +319,8 @@
                   title: cleanTitle,
                   url: item.link,
                   summary: item.description ? item.description.replace(/<[^>]*>/g, '').slice(0, 220) + '...' : `Google News breaking report via ${publisher}`,
-                  published_at: item.pubDate ? item.pubDate.split(' ')[0] : new Date().toISOString().split('T')[0],
+                  published_at: pubDateStr,
+                  published_timestamp: item.pubDate ? new Date(item.pubDate).getTime() : nowMs,
                   engagement: { publisher: publisher, points: 340, comments: 45, score_by_people: 885 }
                 });
               }
@@ -322,22 +328,26 @@
           }
         } catch (err) {}
 
-        // 2. HackerNews Algolia API
+        // 2. HackerNews Algolia API with `numericFilters=created_at_i>${cutoffSec}` for strict timestamp filtering
         try {
-          const hnUrl = `https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(q)}&tags=story&hitsPerPage=${perPage}`;
+          const hnUrl = `https://hn.algolia.com/api/v1/search_by_date?query=${encodeURIComponent(q)}&tags=story&numericFilters=created_at_i>${cutoffSec}&hitsPerPage=${perPage}`;
           const res = await fetch(hnUrl);
           if (res.ok) {
             const data = await res.json();
             (data.hits || []).forEach(item => {
               if (item.title) {
                 const humanScore = (item.points || 0) * 2 + (item.num_comments || 0) * 3;
+                const pubDateStr = item.created_at ? item.created_at.split('T')[0] : new Date().toISOString().split('T')[0];
+                const pubTs = item.created_at_i ? item.created_at_i * 1000 : new Date(pubDateStr).getTime();
+
                 rawFindings.push({
                   candidate_id: `hn-${item.objectID}`,
                   source: 'hackernews',
                   title: item.title,
                   url: item.url || `https://news.ycombinator.com/item?id=${item.objectID}`,
                   summary: `HackerNews tech discussion thread with ${item.points || 0} upvotes and ${item.num_comments || 0} community comments.`,
-                  published_at: item.created_at ? item.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
+                  published_at: pubDateStr,
+                  published_timestamp: pubTs,
                   engagement: { points: item.points || 0, comments: item.num_comments || 0, score_by_people: humanScore }
                 });
               }
@@ -345,9 +355,9 @@
           }
         } catch (err) {}
 
-        // 3. Reddit Public API
+        // 3. Reddit Public API with dynamic `t=${redditTimeParam}` parameter
         try {
-          const redditUrl = `https://www.reddit.com/search.json?q=${encodeURIComponent(q)}&sort=relevance&t=month&limit=${perPage}`;
+          const redditUrl = `https://www.reddit.com/search.json?q=${encodeURIComponent(q)}&sort=new&t=${redditTimeParam}&limit=${perPage}`;
           const res = await fetch(redditUrl);
           if (res.ok) {
             const data = await res.json();
@@ -356,13 +366,17 @@
               const post = p.data;
               if (post && post.title) {
                 const humanScore = (post.score || 0) + (post.num_comments || 0) * 2;
+                const pubTs = post.created_utc * 1000;
+                const pubDateStr = new Date(pubTs).toISOString().split('T')[0];
+
                 rawFindings.push({
                   candidate_id: `reddit-${post.id}`,
                   source: 'reddit',
                   title: post.title,
                   url: `https://www.reddit.com${post.permalink}`,
                   summary: post.selftext ? post.selftext.slice(0, 220) + '...' : `r/${post.subreddit} community post by u/${post.author} with ${post.score} upvotes.`,
-                  published_at: new Date(post.created_utc * 1000).toISOString().split('T')[0],
+                  published_at: pubDateStr,
+                  published_timestamp: pubTs,
                   engagement: { score: post.score || 0, num_comments: post.num_comments || 0, score_by_people: humanScore }
                 });
               }
@@ -370,21 +384,26 @@
           }
         } catch (err) {}
 
-        // 4. GitHub Repos API
+        // 4. GitHub Repos API with updated date filter `pushed:>${cutoffDate}`
         try {
-          const ghUrl = `https://api.github.com/search/repositories?q=${encodeURIComponent(q)}&sort=updated&per_page=${perPage}`;
+          const cutoffDate = new Date(cutoffMs).toISOString().split('T')[0];
+          const ghUrl = `https://api.github.com/search/repositories?q=${encodeURIComponent(q)}+pushed:>${cutoffDate}&sort=updated&per_page=${perPage}`;
           const res = await fetch(ghUrl);
           if (res.ok) {
             const data = await res.json();
             (data.items || []).forEach(repo => {
               const humanScore = (repo.stargazers_count || 0) + (repo.forks_count || 0) * 3;
+              const pubDateStr = repo.updated_at ? repo.updated_at.split('T')[0] : new Date().toISOString().split('T')[0];
+              const pubTs = new Date(pubDateStr).getTime();
+
               rawFindings.push({
                 candidate_id: `gh-${repo.id}`,
                 source: 'github',
                 title: repo.full_name,
                 url: repo.html_url,
                 summary: repo.description || `GitHub open source project with ${repo.stargazers_count} stars and ${repo.forks_count} forks.`,
-                published_at: repo.updated_at ? repo.updated_at.split('T')[0] : new Date().toISOString().split('T')[0],
+                published_at: pubDateStr,
+                published_timestamp: pubTs,
                 engagement: { stars: repo.stargazers_count || 0, forks: repo.forks_count || 0, score_by_people: humanScore }
               });
             });
@@ -402,13 +421,20 @@
 
       const uniqueFindings = Array.from(uniqueMap.values());
 
-      // Calculate Smart Relevance Score
-      const scoredFindings = uniqueFindings.map(item => ({
+      // STRICT DATE GUARD: Discard ANY item older than cutoffMs!
+      const dateValidatedFindings = uniqueFindings.filter(item => {
+        if (!item.published_timestamp) return true;
+        return item.published_timestamp >= cutoffMs;
+      });
+
+      console.log(`[Strict Date Engine] Total raw items: ${uniqueFindings.length}, After Lookback (${searchDays}d) filter: ${dateValidatedFindings.length}`);
+
+      // Calculate Relevance Score
+      const scoredFindings = dateValidatedFindings.map(item => ({
         ...item,
         relevance_score: calculateStrictRelevance(queryTopic, item.title, item.summary)
       }));
 
-      // Smart Threshold: If results are many, filter at 0.35. If results are few, filter at 0.25 so 0 items NEVER happens!
       let filteredFindings = scoredFindings.filter(item => item.relevance_score >= 0.35);
       if (filteredFindings.length < 3) {
         filteredFindings = scoredFindings.filter(item => item.relevance_score >= 0.20);
@@ -420,6 +446,7 @@
         query_topic: queryTopic,
         expanded_search_terms: searchTerms,
         window_days: Number(searchDays),
+        cutoff_date: new Date(cutoffMs).toISOString().split('T')[0],
         research_depth: searchDepth,
         schema_version: "1.2",
         as_of_date: new Date().toISOString().split('T')[0],
@@ -440,7 +467,7 @@
     async function fetch24HTrendingTopics() {
       const dynamicTopics = [];
       try {
-        const res = await fetch('https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=12');
+        const res = await fetch('https://hn.algolia.com/api/v1/search_by_date?tags=story&hitsPerPage=12');
         if (res.ok) {
           const data = await res.json();
           (data.hits || []).forEach(item => {
@@ -470,7 +497,7 @@
     }
 
     function App() {
-      const [topic, setTopic] = useState('HR');
+      const [topic, setTopic] = useState('Claude 3.7');
       const [days, setDays] = useState(30);
       const [depth, setDepth] = useState('quick');
       const [selectedSources, setSelectedSources] = useState([]);
@@ -496,9 +523,9 @@
         fetch('/api/doctor')
           .then(res => res.json())
           .then(data => setDoctorStatus(data))
-          .catch(() => setDoctorStatus({ status: 'ok', mode: 'Smart Query Expansion & Multi-Source Engine' }));
+          .catch(() => setDoctorStatus({ status: 'ok', mode: 'Strict Lookback Window Date Engine' }));
 
-        handleSearch('HR', 30, 'quick');
+        handleSearch('Claude 3.7', 30, 'quick');
       }, []);
 
       const load24HTrends = async () => {
@@ -532,10 +559,11 @@
           if (res.ok) {
             const data = await res.json();
             if (data && data.findings && data.findings.length > 0) {
-              data.findings = data.findings.map(item => ({
-                ...item,
-                relevance_score: calculateStrictRelevance(cleanTopic, item.title, item.summary)
-              })).filter(item => item.relevance_score >= 0.25);
+              const cutoffMs = Date.now() - (Number(searchDays) * 24 * 60 * 60 * 1000);
+              data.findings = data.findings.filter(item => {
+                if (!item.published_at) return true;
+                return new Date(item.published_at).getTime() >= cutoffMs;
+              });
 
               setResultsData(data);
               setIsLoading(false);
@@ -614,21 +642,21 @@
                   fontSize: '1.65rem',
                   color: '#ffffff'
                 }}>
-                  🌐
+                  📅
                 </div>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <h1 style={{ fontSize: '1.55rem', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.5px' }}>last30days</h1>
                     <span style={{
-                      background: 'rgba(37, 99, 235, 0.1)',
-                      color: '#2563eb',
-                      border: '1px solid rgba(37, 99, 235, 0.25)',
+                      background: 'rgba(21, 128, 61, 0.1)',
+                      color: '#15803d',
+                      border: '1px solid rgba(21, 128, 61, 0.25)',
                       padding: '4px 12px',
                       borderRadius: '16px',
                       fontSize: '0.78rem',
                       fontWeight: '700'
                     }}>
-                      Smart Query & Acronym Expansion Active
+                      Strict Lookback Window ({days} Days Cutoff: {resultsData?.cutoff_date || 'Enforced'})
                     </span>
                   </div>
                   <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginTop: '3px' }}>
@@ -649,7 +677,6 @@
 
             </div>
 
-            {/* Clean Horizontal Scroll Container */}
             <div style={{ marginTop: '24px', paddingTop: '18px', borderTop: '1px solid rgba(226, 232, 240, 0.8)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
               <div className="scroll-container-feather" style={{ flex: 1 }}>
                 <span style={{ fontSize: '0.82rem', fontWeight: '800', color: '#2563eb', whiteSpace: 'nowrap', marginRight: '6px' }}>
@@ -696,7 +723,7 @@
                 {isLoading ? (
                   <>
                     <div className="spinner" style={{ width: '18px', height: '18px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%' }} />
-                    <span>스마트 쿼리 탐색 중...</span>
+                    <span>최신 날짜 검증 수집 중...</span>
                   </>
                 ) : (
                   <span>🌊 딥 리서치 실행</span>
@@ -706,10 +733,15 @@
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px', paddingTop: '22px', borderTop: '1px solid rgba(226, 232, 240, 0.8)' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', color: 'var(--text-dim)', marginBottom: '10px' }}>조사 기간 (LOOKBACK DAYS)</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: '800', color: 'var(--text-dim)' }}>조사 기간 (LOOKBACK DAYS)</label>
+                  <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#16a34a' }}>
+                    {days}일 이내만 엄격 차단
+                  </span>
+                </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   {[7, 14, 30, 90].map(d => (
-                    <button key={d} onClick={() => setDays(d)} style={{ flex: 1, padding: '10px 0', fontSize: '0.85rem', fontWeight: '700', borderRadius: '8px', border: days === d ? '1.5px solid var(--blue-primary)' : '1px solid var(--border-glass)', background: days === d ? 'rgba(37, 99, 235, 0.12)' : '#ffffff', color: days === d ? '#2563eb' : 'var(--text-main)', cursor: 'pointer' }}>
+                    <button key={d} onClick={() => { setDays(d); handleSearch(topic, d, depth); }} style={{ flex: 1, padding: '10px 0', fontSize: '0.85rem', fontWeight: '700', borderRadius: '8px', border: days === d ? '1.5px solid var(--blue-primary)' : '1px solid var(--border-glass)', background: days === d ? 'rgba(37, 99, 235, 0.12)' : '#ffffff', color: days === d ? '#2563eb' : 'var(--text-main)', cursor: 'pointer' }}>
                       {d}일간
                     </button>
                   ))}
@@ -720,7 +752,7 @@
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                   <label style={{ fontSize: '0.8rem', fontWeight: '800', color: 'var(--text-dim)' }}>탐색 깊이 (RESEARCH DEPTH)</label>
                   <span style={{ fontSize: '0.72rem', fontWeight: '700', color: depth === 'deep' ? '#7c3aed' : '#0284c7' }}>
-                    {depth === 'deep' ? '20건 수집 + 동의어 3중 확장' : '10건 빠른 수집'}
+                    {depth === 'deep' ? '25건 수집 + 동의어 3중 확장' : '12건 빠른 수집'}
                   </span>
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -764,11 +796,11 @@
                   <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span>📊 Sources Breakdown</span>
                     <span style={{ fontSize: '0.78rem', background: '#dcfce7', color: '#15803d', padding: '3px 10px', borderRadius: '12px', fontWeight: '700' }}>
-                      Query Expansion Active: {expandedTerms.join(', ')}
+                      Strict {days} Days Lookback Enforced ({resultsData.cutoff_date} 이후만 수집)
                     </span>
                   </h3>
                   <p style={{ fontSize: '0.84rem', color: 'var(--text-dim)', marginTop: '3px' }}>
-                    검색 키워드 <strong>"{resultsData.query_topic}"</strong>에 대해 총 <strong>{findings.length}개</strong>의 검증 항목 수집 완료
+                    검색 키워드 <strong>"{resultsData.query_topic}"</strong>에 대해 최근 <strong>{days}일간</strong>의 데이터 총 <strong>{findings.length}개</strong> 수집 완료
                   </p>
                 </div>
               </div>
@@ -787,7 +819,7 @@
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                         <span style={{ fontSize: '1.1rem' }}>{src.icon}</span>
                         <span style={{ fontSize: '0.72rem', fontWeight: '800', color: count > 0 ? '#16a34a' : '#64748b', background: count > 0 ? '#f0fdf4' : '#f1f5f9', padding: '2px 8px', borderRadius: '10px' }}>
-                          {count > 0 ? 'Active' : 'Filtered'}
+                          {count > 0 ? 'Verified' : 'Filtered'}
                         </span>
                       </div>
                       <div style={{ fontSize: '0.88rem', fontWeight: '800', color: '#0f172a' }}>{src.name}</div>
@@ -802,7 +834,7 @@
           {resultsData && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px', flexWrap: 'wrap', gap: '14px' }}>
               <h2 style={{ fontSize: '1.35rem', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.3px' }}>
-                수집 결과: <span style={{ color: '#2563eb' }}>"{resultsData.query_topic}"</span> <span style={{ fontSize: '0.95rem', color: 'var(--text-dim)', fontWeight: '600' }}>({findings.length}개 항목)</span>
+                수집 결과: <span style={{ color: '#2563eb' }}>"{resultsData.query_topic}"</span> <span style={{ fontSize: '0.95rem', color: 'var(--text-dim)', fontWeight: '600' }}>({findings.length}개 항목 · 최근 {days}일 이내)</span>
               </h2>
               <button onClick={() => setIsExportOpen(true)} className="btn-secondary" style={{ fontSize: '0.86rem', padding: '10px 18px' }}>
                 📥 리포트 / JSON 내보내기
@@ -907,7 +939,7 @@
                           {eng.points || eng.score ? <span>👍 추천 {eng.points || eng.score}</span> : null}
                           {eng.comments || eng.num_comments ? <span>💬 댓글 {eng.comments || eng.num_comments}개</span> : null}
                           {eng.stars ? <span>⭐ Stars {eng.stars}</span> : null}
-                          {item.published_at ? <span>📅 {item.published_at}</span> : null}
+                          {item.published_at ? <span style={{ color: '#16a34a', fontWeight: '700' }}>📅 {item.published_at}</span> : null}
                         </div>
                         <a href={item.url} target="_blank" style={{ color: '#2563eb', textDecoration: 'none', fontWeight: '700' }}>
                           게시글 열기 ↗
