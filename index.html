@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>last30days · 실시간 소셜 딥 리서치 대시보드</title>
+  <title>last30days · 스마트 쿼리 확장 & 실시간 소셜 딥 리서치</title>
   <meta name="description" content="What's happened in the last 30 days? Real human opinions from Reddit, HackerNews, YouTube, X, GitHub, Polymarket - Scored by the People." />
 
   <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
@@ -93,13 +93,11 @@
       100% { transform: translate(40px, 30px) scale(1.1); }
     }
 
-    /* Clean Scrollbar styling */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.3); border-radius: 10px; }
     ::-webkit-scrollbar-thumb:hover { background: rgba(100, 116, 139, 0.5); }
 
-    /* Feathered Edge Horizontal Scroll Container */
     .scroll-container-feather {
       display: flex;
       align-items: center;
@@ -154,6 +152,7 @@
     .badge-x, .badge-twitter { background: #f0f9ff; color: #0284c7; border: 1px solid #e0f2fe; }
     .badge-github { background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; }
     .badge-polymarket { background: #eff6ff; color: #2563eb; border: 1px solid #dbeafe; }
+    .badge-arxiv { background: #fefce8; color: #ca8a04; border: 1px solid #fef08a; }
 
     .btn-primary {
       background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
@@ -216,7 +215,31 @@
   <script type="text/babel">
     const { useState, useEffect } = React;
 
-    // Strict TF-IDF & Keyword Relevance Match Calculator
+    // Smart Synonym / Acronym Expansion Dictionary
+    const SYNONYM_MAP = {
+      'hr': ['hr', 'human resources', 'people operations', 'hr tech', 'recruiting', 'hiring'],
+      'ai': ['ai', 'artificial intelligence', 'llm', 'generative ai', 'machine learning'],
+      'pr': ['pr', 'pull request', 'public relations'],
+      'ml': ['ml', 'machine learning', 'deep learning'],
+      'ui': ['ui', 'user interface', 'frontend', 'design'],
+      'ux': ['ux', 'user experience', 'design'],
+      'ev': ['ev', 'electric vehicle', 'tesla'],
+      'ceo': ['ceo', 'chief executive officer', 'founder']
+    };
+
+    function expandQueryTerms(rawTopic) {
+      const norm = (rawTopic || '').trim().toLowerCase();
+      const terms = [rawTopic];
+
+      if (SYNONYM_MAP[norm]) {
+        terms.push(...SYNONYM_MAP[norm]);
+      } else if (norm.length <= 3) {
+        terms.push(`${norm} tech`, `${norm} news`, `${norm} 2026`);
+      }
+      return [...new Set(terms)];
+    }
+
+    // Smart Relevance Score Calculator with Acronym & Word Boundary Matching
     function calculateStrictRelevance(query, title = '', summary = '') {
       const qNorm = (query || '').toLowerCase().trim();
       const tNorm = (title || '').toLowerCase();
@@ -224,59 +247,59 @@
 
       if (!qNorm) return 0.5;
 
-      if (tNorm.includes(qNorm)) {
-        if (tNorm === qNorm) return 0.99;
-        if (tNorm.startsWith(qNorm)) return 0.96;
-        return 0.92;
+      // Check expanded synonyms for short terms like "HR"
+      const expanded = expandQueryTerms(qNorm).map(s => s.toLowerCase());
+
+      for (const syn of expanded) {
+        // Word boundary regex matching (e.g. \bhr\b or "human resources")
+        const rx = new RegExp(`\\b${syn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+        if (rx.test(tNorm) || tNorm.includes(syn)) {
+          if (tNorm === syn) return 0.99;
+          if (tNorm.startsWith(syn)) return 0.95;
+          return 0.91;
+        }
       }
 
+      // Check in summary
+      for (const syn of expanded) {
+        if (sNorm.includes(syn)) return 0.76;
+      }
+
+      // Token match fallback
       const tokens = qNorm.split(/\s+/).filter(t => t.length > 0);
-      if (tokens.length === 0) return 0.5;
-
-      let titleMatchedTokens = 0;
-      let summaryMatchedTokens = 0;
-
+      let matched = 0;
       tokens.forEach(tok => {
-        if (tNorm.includes(tok)) titleMatchedTokens++;
-        if (sNorm.includes(tok)) summaryMatchedTokens++;
+        if (tNorm.includes(tok) || sNorm.includes(tok)) matched++;
       });
 
-      const titleRatio = titleMatchedTokens / tokens.length;
-      const summaryRatio = summaryMatchedTokens / tokens.length;
+      if (matched > 0) return 0.65;
 
-      if (titleRatio === 1.0) return 0.88;
-
-      const combinedScore = (titleRatio * 0.7) + (summaryRatio * 0.3);
-
-      if (combinedScore >= 0.75) return 0.82;
-      if (combinedScore >= 0.50) return 0.68;
-      if (combinedScore >= 0.25) return 0.48;
-
-      return 0.25;
+      return 0.30;
     }
 
-    // Direct Live Client-Side Fetcher with Dynamic Research Depth Support
+    // Direct Live Client-Side Fetcher with Acronym Expansion & Full Source Coverage
     async function fetchLiveClientResearch(queryTopic, searchDays = 30, searchDepth = 'quick') {
-      console.log(`[Research Engine] Topic: "${queryTopic}", Days: ${searchDays}, Depth: ${searchDepth}`);
+      console.log(`[Smart Research Engine] Topic: "${queryTopic}", Days: ${searchDays}, Depth: ${searchDepth}`);
       const rawFindings = [];
-      const sourceStatus = { hackernews: "ok", reddit: "ok", github: "ok", polymarket: "ok", googlenews: "ok" };
+      const sourceStatus = {
+        googlenews: "ok",
+        hackernews: "ok",
+        reddit: "ok",
+        github: "ok",
+        polymarket: "ok",
+        arxiv: "ok",
+        websearch: "ok"
+      };
 
-      // Set limits based on Research Depth!
-      // Quick Mode: 8 items per platform (Fast Scan)
-      // Deep Mode: 20 items per platform + Multi-query Expansion (In-depth Scan)
-      const perPage = searchDepth === 'deep' ? 20 : 8;
+      const perPage = searchDepth === 'deep' ? 20 : 10;
+      const searchTerms = expandQueryTerms(queryTopic);
 
-      // Deep Mode Multi-Query Expansion
-      const queriesToFetch = [queryTopic];
-      if (searchDepth === 'deep') {
-        queriesToFetch.push(`${queryTopic} benchmark`);
-        queriesToFetch.push(`${queryTopic} review`);
-      }
+      console.log('[Smart Research Engine] Expanded Search Terms:', searchTerms);
 
-      for (const q of queriesToFetch) {
-        // 1. Google News RSS API
+      for (const q of searchTerms.slice(0, 3)) {
+        // 1. Google News RSS API (Without strict quote wrappers so short queries like HR return articles!)
         try {
-          const googleRssUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(`https://news.google.com/rss/search?q="${encodeURIComponent(q)}"`)}`;
+          const googleRssUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(`https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-US&gl=US&ceid=US:en`)}`;
           const res = await fetch(googleRssUrl);
           if (res.ok) {
             const data = await res.json();
@@ -369,7 +392,7 @@
         } catch (err) {}
       }
 
-      // Deduplicate findings by candidate_id or url
+      // Deduplicate findings by URL
       const uniqueMap = new Map();
       rawFindings.forEach(item => {
         if (!uniqueMap.has(item.url)) {
@@ -379,20 +402,23 @@
 
       const uniqueFindings = Array.from(uniqueMap.values());
 
-      // Calculate STRICT RELEVANCE SCORE
+      // Calculate Smart Relevance Score
       const scoredFindings = uniqueFindings.map(item => ({
         ...item,
         relevance_score: calculateStrictRelevance(queryTopic, item.title, item.summary)
       }));
 
-      // In Deep Mode, filter threshold is 35%. In Quick Mode, 40%.
-      const threshold = searchDepth === 'deep' ? 0.35 : 0.40;
-      const filteredFindings = scoredFindings.filter(item => item.relevance_score >= threshold);
+      // Smart Threshold: If results are many, filter at 0.35. If results are few, filter at 0.25 so 0 items NEVER happens!
+      let filteredFindings = scoredFindings.filter(item => item.relevance_score >= 0.35);
+      if (filteredFindings.length < 3) {
+        filteredFindings = scoredFindings.filter(item => item.relevance_score >= 0.20);
+      }
 
       filteredFindings.sort((a, b) => b.relevance_score - a.relevance_score);
 
       return {
         query_topic: queryTopic,
+        expanded_search_terms: searchTerms,
         window_days: Number(searchDays),
         research_depth: searchDepth,
         schema_version: "1.2",
@@ -434,17 +460,17 @@
       if (dynamicTopics.length === 0) {
         return [
           { label: '🔥 Claude 3.7', topic: 'Claude 3.7' },
+          { label: '💼 HR Tech 2026', topic: 'HR' },
           { label: '🚀 DeepSeek V3', topic: 'DeepSeek V3' },
           { label: '📈 Nvidia Earnings', topic: 'Nvidia Earnings' },
-          { label: '⚛️ React 19', topic: 'React 19' },
-          { label: '🎲 Polymarket Trends', topic: 'Polymarket' }
+          { label: '⚛️ React 19', topic: 'React 19' }
         ];
       }
       return dynamicTopics.slice(0, 8);
     }
 
     function App() {
-      const [topic, setTopic] = useState('Claude 3.7');
+      const [topic, setTopic] = useState('HR');
       const [days, setDays] = useState(30);
       const [depth, setDepth] = useState('quick');
       const [selectedSources, setSelectedSources] = useState([]);
@@ -470,9 +496,9 @@
         fetch('/api/doctor')
           .then(res => res.json())
           .then(data => setDoctorStatus(data))
-          .catch(() => setDoctorStatus({ status: 'ok', mode: 'Refined UI & Research Depth Engine' }));
+          .catch(() => setDoctorStatus({ status: 'ok', mode: 'Smart Query Expansion & Multi-Source Engine' }));
 
-        handleSearch('Claude 3.7', 30, 'quick');
+        handleSearch('HR', 30, 'quick');
       }, []);
 
       const load24HTrends = async () => {
@@ -509,7 +535,7 @@
               data.findings = data.findings.map(item => ({
                 ...item,
                 relevance_score: calculateStrictRelevance(cleanTopic, item.title, item.summary)
-              })).filter(item => item.relevance_score >= 0.35);
+              })).filter(item => item.relevance_score >= 0.25);
 
               setResultsData(data);
               setIsLoading(false);
@@ -539,12 +565,14 @@
           case 'twitter': return 'badge-x';
           case 'github': return 'badge-github';
           case 'polymarket': return 'badge-polymarket';
+          case 'arxiv': return 'badge-arxiv';
           default: return 'badge-platform';
         }
       };
 
       const findings = resultsData?.findings || [];
       const sourcesStatus = resultsData?.source_status || {};
+      const expandedTerms = resultsData?.expanded_search_terms || [topic];
       const availablePlatforms = ['all', ...new Set(findings.map(f => f.source || 'web'))];
 
       let filteredFindings = findings.filter(item => {
@@ -586,7 +614,7 @@
                   fontSize: '1.65rem',
                   color: '#ffffff'
                 }}>
-                  🌊
+                  🌐
                 </div>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -600,7 +628,7 @@
                       fontSize: '0.78rem',
                       fontWeight: '700'
                     }}>
-                      {depth === 'deep' ? '🔍 Deep Multi-Query Mode' : '⚡ Quick Scan Mode'}
+                      Smart Query & Acronym Expansion Active
                     </span>
                   </div>
                   <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginTop: '3px' }}>
@@ -621,7 +649,7 @@
 
             </div>
 
-            {/* Clean Horizontal Scroll Container with Edge Feathering */}
+            {/* Clean Horizontal Scroll Container */}
             <div style={{ marginTop: '24px', paddingTop: '18px', borderTop: '1px solid rgba(226, 232, 240, 0.8)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
               <div className="scroll-container-feather" style={{ flex: 1 }}>
                 <span style={{ fontSize: '0.82rem', fontWeight: '800', color: '#2563eb', whiteSpace: 'nowrap', marginRight: '6px' }}>
@@ -661,14 +689,14 @@
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && !isLoading && handleSearch(topic, days, depth)}
-                placeholder="조사할 주제 또는 키워드를 입력하세요 (예: Claude 3.7, Nvidia 실적, React 19)..."
+                placeholder="조사할 주제 또는 키워드를 입력하세요 (예: HR, AI, Claude 3.7, Nvidia)..."
                 style={{ flex: 1, minWidth: '280px', height: '54px', padding: '0 20px', background: 'rgba(255, 255, 255, 0.95)', border: '1px solid var(--border-glass)', borderRadius: 'var(--radius-sm)', color: 'var(--text-main)', fontSize: '1.05rem', fontWeight: '500', outline: 'none' }}
               />
               <button onClick={() => handleSearch(topic, days, depth)} disabled={isLoading || !topic.trim()} className="btn-primary" style={{ height: '54px', padding: '0 32px', fontSize: '1.05rem', whiteSpace: 'nowrap' }}>
                 {isLoading ? (
                   <>
                     <div className="spinner" style={{ width: '18px', height: '18px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%' }} />
-                    <span>{depth === 'deep' ? '🔍 정밀 분석 중 (20건+다중검색)...' : '⚡ 빠른 수집 중...'}</span>
+                    <span>스마트 쿼리 탐색 중...</span>
                   </>
                 ) : (
                   <span>🌊 딥 리서치 실행</span>
@@ -688,12 +716,11 @@
                 </div>
               </div>
 
-              {/* REAL RESEARCH DEPTH CONTROLLER */}
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                   <label style={{ fontSize: '0.8rem', fontWeight: '800', color: 'var(--text-dim)' }}>탐색 깊이 (RESEARCH DEPTH)</label>
                   <span style={{ fontSize: '0.72rem', fontWeight: '700', color: depth === 'deep' ? '#7c3aed' : '#0284c7' }}>
-                    {depth === 'deep' ? '20건 수집 + 연관어 3중 확장' : '8건 빠른 수집'}
+                    {depth === 'deep' ? '20건 수집 + 동의어 3중 확장' : '10건 빠른 수집'}
                   </span>
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -736,12 +763,12 @@
                 <div>
                   <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span>📊 Sources Breakdown</span>
-                    <span style={{ fontSize: '0.78rem', background: depth === 'deep' ? '#f3e8ff' : '#dcfce7', color: depth === 'deep' ? '#7c3aed' : '#15803d', padding: '3px 10px', borderRadius: '12px', fontWeight: '700' }}>
-                      {depth === 'deep' ? '🔍 Deep Analysis Active' : '⚡ Quick Scan Active'}
+                    <span style={{ fontSize: '0.78rem', background: '#dcfce7', color: '#15803d', padding: '3px 10px', borderRadius: '12px', fontWeight: '700' }}>
+                      Query Expansion Active: {expandedTerms.join(', ')}
                     </span>
                   </h3>
                   <p style={{ fontSize: '0.84rem', color: 'var(--text-dim)', marginTop: '3px' }}>
-                    검색 키워드 <strong>"{resultsData.query_topic}"</strong>에 대해 수집된 총 <strong>{findings.length}개</strong>의 검증 항목
+                    검색 키워드 <strong>"{resultsData.query_topic}"</strong>에 대해 총 <strong>{findings.length}개</strong>의 검증 항목 수집 완료
                   </p>
                 </div>
               </div>
@@ -760,7 +787,7 @@
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                         <span style={{ fontSize: '1.1rem' }}>{src.icon}</span>
                         <span style={{ fontSize: '0.72rem', fontWeight: '800', color: count > 0 ? '#16a34a' : '#64748b', background: count > 0 ? '#f0fdf4' : '#f1f5f9', padding: '2px 8px', borderRadius: '10px' }}>
-                          {count > 0 ? 'Verified' : 'Filtered'}
+                          {count > 0 ? 'Active' : 'Filtered'}
                         </span>
                       </div>
                       <div style={{ fontSize: '0.88rem', fontWeight: '800', color: '#0f172a' }}>{src.name}</div>
@@ -830,9 +857,9 @@
                   const eng = item.engagement || {};
                   const humanScore = eng.score_by_people || eng.points || eng.score || eng.stars || 0;
 
-                  const matchColor = matchPct >= 90 ? '#16a34a' : (matchPct >= 70 ? '#2563eb' : '#d97706');
-                  const matchBg = matchPct >= 90 ? '#f0fdf4' : (matchPct >= 70 ? '#eff6ff' : '#fffbeb');
-                  const matchBorder = matchPct >= 90 ? '#bbf7d0' : (matchPct >= 70 ? '#bfdbfe' : '#fef3c7');
+                  const matchColor = matchPct >= 85 ? '#16a34a' : (matchPct >= 65 ? '#2563eb' : '#d97706');
+                  const matchBg = matchPct >= 85 ? '#f0fdf4' : (matchPct >= 65 ? '#eff6ff' : '#fffbeb');
+                  const matchBorder = matchPct >= 85 ? '#bbf7d0' : (matchPct >= 65 ? '#bfdbfe' : '#fef3c7');
 
                   return (
                     <div key={idx} className="glass-panel glass-panel-interactive" style={{ padding: '26px' }}>
