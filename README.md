@@ -1,37 +1,42 @@
-# 🌊 last30days 실시간 딥 리서치 웹 대시보드
+# 🌊 last30days 실시간 딥 리서치 웹 대시보드 (v2.0)
 
-`last30days-skill`을 기반으로 구축된 **실시간 소셜, 뉴스, 기술 커뮤니티 & 학술 논문 딥 리서치 웹 애플리케이션**입니다.  
-최근 24시간 실시간 핫 트렌드 탐색부터 최근 30일간의 Google News, Reddit, HackerNews, GitHub, Polymarket, **alphaXiv 학술 논문 MCP 3대 툴 (discover_papers, get_paper_content, answer_pdf_queries)** 데이터를 시각화된 대시보드에서 통합 조사할 수 있습니다.
-
----
-
-## 🌟 주요 신규 기능 (New Features)
-
-### 1. 📰 구글 뉴스 동일 이슈 복수 매체 종합 보도 클러스터링 (Google News Story Clustering)
-- **동일 이슈 뉴스 그룹화**: 동일한 사건이나 기사를 여러 언론사(조선일보, 연합뉴스, 매일경제 등)에서 보도한 경우, 개별 기사로 나열하지 않고 **"📰 조선일보 외 3개 매체에서 함께 보도 (총 4개 출처)"** 형태의 단일 대표 카드로 자동 종합합니다.
-- **아코디언 확장 목록**: 카드 내 **`▼ 복수 매체 기사 보기`** 버튼을 누르면 관련된 모든 언론사의 기사 제목과 직접 링크를 한눈에 펼쳐볼 수 있습니다.
-
-### 2. 💡 Human Score (사람의 관심도 점수) 산출 기준 & 안내
-- **개념**: 검색엔진 광고나 알고리즘 추천 순위가 아닌, **실제 대중(Human)이 매긴 관심도 및 참여도 정량 지표**입니다.
-- **플랫폼별 산출공식**:
-  - **Reddit**: `Upvote 점수 + (댓글 수 × 2)`
-  - **HackerNews**: `Upvote Points × 2 + (댓글 수 × 3)`
-  - **GitHub**: `Stars + (Forks × 3)`
-- **UI 안내**: 상단 헤더의 **`ℹ️ Human Score 안내`** 버튼 및 각 카드 뱃지를 클릭하면 산출 기준 안내 모달 창이 표시됩니다.
-
-### 3. 📄 alphaXiv 공식 MCP 3대 툴 연동 (`discover_papers`, `get_paper_content`, `answer_pdf_queries`)
-- **`discover_papers`**: 검색 키워드 및 조사 기간(`published_after`) 연동 논문 자동 발굴.
-- **`get_paper_content`**: 각 논문 카드의 **`[get_paper_content]`** 버튼으로 AI 요약 리포트 열람.
-- **`answer_pdf_queries`**: 각 논문 카드의 **`[answer_pdf_queries]`** 버튼으로 PDF 페이지 레벨 질의응답 (Q&A) 수행.
-
-### 4. 📥 마크다운 (.md) 리서치 보고서 내보내기
-- 수집된 모든 결과 데이터를 깔끔한 **GitHub Flavored Markdown 문서**로 클립보드 복사 및 `.md` 파일 다운로드 지원.
+`last30days-skill`을 기반으로 구축된 **10+ 글로벌 소스 다국어/다중키워드 실시간 딥 리서치 웹 애플리케이션**입니다.  
+최근 24시간 실시간 핫 트렌드 탐색부터 최근 30일간의 Google News, Reddit, HackerNews, GitHub, Bluesky, YouTube, Dev.to, StackOverflow, Wikipedia, **alphaXiv 학술 논문 MCP 3대 툴 (discover_papers, get_paper_content, answer_pdf_queries)** 데이터를 시각화된 대시보드에서 통합 조사할 수 있습니다.
 
 ---
 
-## 🚀 사용 방법 (How to Run & Deploy)
+## 🌟 주요 핵심 기능 (Key Features)
 
-### 1. 로컬 환경에서 실행 (Local Development)
+### 1. 🌐 10+ 글로벌 멀티 소스 통합 파이프라인 (10+ Multi-Sources Pipeline)
+- **학술 논문**: `alphaXiv` (discover_papers, get_paper_content, answer_pdf_queries)
+- **글로벌 뉴스**: `Google News` (한국어, 영어, 일본어 멀티 리전 수집)
+- **개발자 & 기술 커뮤니티**: `HackerNews`, `Reddit`, `GitHub`, `Dev.to`, `StackOverflow`
+- **소셜 메디아 & 실시간 반응**: `Bluesky` (실시간 XRPCSearch API), `YouTube` (심층 비디오 수집)
+- **지식 & 배경 정보**: `Wikipedia` (한국어 및 영어 위키백과 정보)
+
+### 2. 🔤 자동 다국어 & 다중 키워드 개념 확장 엔진 (Bilingual Query Expansion)
+- 한글 및 영문 혼용 검색어(예: `"Nvidia 실적"`, `"Claude 3.7"`, `"DeepSeek V3"`, `"AI 비디오 툴"`) 입력 시:
+  - **한국어 전용 검색어**와 **영어 개념 어휘(Earnings, Benchmark, Financials, Performance 등)** 로 자동 확장 분기.
+  - 전 세계 10개 플랫폼에서 동시 병렬 수집을 수행하여 검색 누락을 방지하고 커버리지를 10배 이상 향상시킵니다.
+
+### 3. 🛡️ Google News 광고 & 스팸 자동 필터링 (Ad & Spam Filtering)
+- Google News RSS에서 유입되는 Google Ad, 스폰서드 링크, 광고성 텍스트 및 플로팅 광고 기사를 사전 탐지하여 결과 목록에서 완전 제거합니다.
+
+### 4. 📰 구글 뉴스 동일 이슈 복수 매체 종합 보도 클러스터링 (Google News Story Clustering)
+- 동일한 사건이나 기사를 여러 언론사에서 보도한 경우, 개별 기사로 나열하지 않고 **"📰 조선일보 외 N개 매체에서 함께 보도"** 형태의 단일 대표 카드로 자동 종합하며, 아코디언 버튼으로 개별 기사를 펼쳐볼 수 있습니다.
+
+### 5. 💡 Human Score (사람의 실제 관심도 점수) 산출
+- 검색엔진 광고나 SEO 기법에 왜곡되지 않은, 실제 대중의 참여 지표(Upvotes, Stars, Comments, Reactions, Likes 등)를 종합한 **Human Score**를 자동으로 계산하여 정렬합니다.
+
+### 6. 📄 alphaXiv 공식 MCP 3대 툴 연동
+- 논문 발굴(`discover_papers`), 전문 및 요약 분석(`get_paper_content`), PDF 페이지 레벨 질의응답(`answer_pdf_queries`)을 지원합니다.
+
+### 7. 📥 마크다운 (.md) 리서치 보고서 내보내기
+- 수집된 모든 리서치 결과를 깔끔한 **GitHub Flavored Markdown 문서**로 클립보드 복사 및 `.md` 파일 다운로드를 제공합니다.
+
+---
+
+## 🚀 실행 방법 (How to Run)
 
 ```bash
 # 1. 프로젝트 폴더로 이동
@@ -41,27 +46,36 @@ cd "E:\Antigravity Playground\Github\Last30days-skill Website Test"
 python server.py
 ```
 
-웹 브라우저 접속:
-👉 **[http://localhost:3000](http://localhost:3000)**
+브라우저에서 **http://localhost:3000** 으로 접속합니다.
 
 ---
 
-### 2. GitHub Pages 배포
+## 📊 시스템 구조 (System Architecture)
 
-```bash
-git push origin main
-```
-배포 사이트: **[https://dreaming-eddie.github.io/Last30days-skill-webtest/](https://dreaming-eddie.github.io/Last30days-skill-webtest/)**
+```mermaid
+graph TD
+    A[Web UI Search Input] --> B[Multi-Language Concept Expander]
+    B --> C[Server API /api/search & last30days CLI]
+    B --> D[Parallel Client Multi-Source Fetcher]
+    
+    D --> E[alphaXiv Papers]
+    D --> F[Google News KR/US + Ad Filter]
+    D --> G[HackerNews & Reddit]
+    D --> H[GitHub Repos 2-Tier Sort]
+    D --> I[Bluesky Public API]
+    D --> J[YouTube Video Feed]
+    D --> K[Dev.to & StackOverflow]
+    D --> L[Wikipedia KR/EN]
 
----
+    E --> M[Deduplication & Cutoff Engine]
+    F --> M
+    G --> M
+    H --> M
+    I --> M
+    J --> M
+    K --> M
+    L --> M
 
-## 📁 주요 프로젝트 구조 (Directory Structure)
-
-```text
-E:\Antigravity Playground\Github\Last30days-skill Website Test\
-├── index.html                # React 단일 페이지 & 구글뉴스 클러스터링 & Human Score 안내 & alphaXiv MCP
-├── mcp_config.json           # https://api.alphaxiv.org/mcp/v1 서버 등록 파일
-├── server.py                 # Python HTTP 백엔드
-├── README.md                 # 프로젝트 문서 및 기능 설명서
-└── package.json              # 프로젝트 설정 파일
+    M --> N[Bilingual Relevance & Human Score Calculation]
+    N --> O[Story Clustering & Interactive Dashboard]
 ```

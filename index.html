@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>last30days · 구글뉴스 매체 클러스터링 & Human Score 안내</title>
-  <meta name="description" content="What's happened in the last 30 days? Real human opinions from Reddit, HackerNews, YouTube, X, GitHub, Polymarket, alphaXiv - Scored by the People." />
+  <title>last30days · 다국어/다중키워드 10대 소스 통합 딥 리서치 대시보드</title>
+  <meta name="description" content="What's happened in the last 30 days? Real human opinions from Reddit, HackerNews, YouTube, Bluesky, Dev.to, StackOverflow, Wikipedia, Google News, GitHub, Polymarket, alphaXiv - Scored by the People." />
 
   <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -154,6 +154,11 @@
     .badge-hackernews { background: #fff7ed; color: #ea580c; border: 1px solid #ffedd5; }
     .badge-reddit { background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2; }
     .badge-github { background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; }
+    .badge-bluesky { background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; }
+    .badge-youtube { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+    .badge-devto { background: #f3f4f6; color: #111827; border: 1px solid #e5e7eb; }
+    .badge-stackoverflow { background: #fff7ed; color: #c2410c; border: 1px solid #ffedd5; }
+    .badge-wikipedia { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
 
     .btn-primary {
       background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
@@ -235,20 +240,43 @@
     const { useState, useEffect } = React;
 
     const BILINGUAL_DICTIONARY = {
-      '실적': 'earnings',
-      '특징': 'features',
-      '성능': 'benchmark performance',
-      '주가': 'stock price',
-      '전망': 'outlook forecast',
-      '사용법': 'tutorial guide',
-      '비교': 'comparison vs',
-      '클로드': 'Claude',
-      '엔비디아': 'Nvidia',
-      '딥시크': 'DeepSeek',
-      '리액트': 'React',
-      '파이썬': 'Python',
-      '인공지능': 'AI',
-      '주식': 'stock'
+      '실적': 'earnings financial results quarterly report',
+      '특징': 'features overview updates',
+      '성능': 'benchmark performance metrics',
+      '주가': 'stock price market valuation',
+      '전망': 'outlook forecast roadmap',
+      '사용법': 'tutorial guide documentation how to use',
+      '비교': 'comparison benchmark vs',
+      '클로드': 'Claude Anthropic',
+      '엔비디아': 'Nvidia GPU Blackwell',
+      '딥시크': 'DeepSeek AI model',
+      '리액트': 'React frontend framework',
+      '파이썬': 'Python programming language',
+      '인공지능': 'AI artificial intelligence LLM',
+      '주식': 'stocks investing market',
+      '신제품': 'release launch announcement',
+      '기술': 'technology architecture spec',
+      '분석': 'analysis breakdown review',
+      '이슈': 'discussion controversies reactions',
+      '트렌드': 'trend popularity adoption'
+    };
+
+    // Google News Ad & Spam Filter
+    const isAdItem = (item) => {
+      const title = (item.title || "").toLowerCase();
+      const link  = (item.link  || "").toLowerCase();
+      const desc  = (item.description || "").toLowerCase();
+      return (
+        title.includes("google ad") ||
+        title.includes("sponsored") ||
+        title.includes("광고") ||
+        title.includes("ads") ||
+        link.includes("adservice") ||
+        link.includes("ads.") ||
+        link.includes("/ad/") ||
+        link.includes("advertiser") ||
+        desc.includes("google ad")
+      );
     };
 
     function processMixedLanguageQuery(rawQuery) {
@@ -283,7 +311,7 @@
       return {
         original: q,
         koreanQuery: q,
-        globalQueries: [...new Set(expandedEngQueries.filter(x => x.length > 0))]
+        globalQueries: [...new Set([q, ...expandedEngQueries].filter(x => x.length > 0))]
       };
     }
 
@@ -390,15 +418,15 @@
       md += `> **총 수집 항목**: ${findings.length}개  \n\n`;
 
       md += `--- \n\n`;
-      md += `## 📊 소스별 수집 요약 (Sources Breakdown)\n\n`;
+      md += `## 📊 소스별 수집 요약 (10+ Multi-Sources Breakdown)\n\n`;
       md += `| 플랫폼 (Source) | 수집 항목 수 | 주 반응 지표 |\n`;
       md += `| :--- | :---: | :--- |\n`;
 
-      const sources = ['alphaxiv', 'hackernews', 'reddit', 'github', 'googlenews'];
+      const sources = ['alphaxiv', 'googlenews', 'hackernews', 'reddit', 'github', 'bluesky', 'youtube', 'devto', 'stackoverflow', 'wikipedia'];
       sources.forEach(src => {
         const items = findings.filter(f => (f.source || '').toLowerCase().includes(src));
         if (items.length > 0) {
-          md += `| **${src.toUpperCase()}** | ${items.length}개 | ${src === 'github' ? 'Stars / Forks' : (src === 'alphaxiv' ? 'Authors & Abstract' : 'Upvotes & Comments')} |\n`;
+          md += `| **${src.toUpperCase()}** | ${items.length}개 | ${src === 'github' ? 'Stars / Forks' : (src === 'alphaxiv' ? 'Authors & Abstract' : 'Upvotes / Likes & Comments')} |\n`;
         }
       });
 
@@ -406,7 +434,7 @@
       md += `## 📝 상세 수집 리스트 (Detailed Findings)\n\n`;
 
       findings.forEach((item, idx) => {
-        const score = item.engagement?.score_by_people || item.engagement?.points || item.engagement?.stars || 0;
+        const score = item.engagement?.score_by_people || item.engagement?.points || item.engagement?.stars || item.engagement?.likes || 0;
         const pubDate = item.published_at || '최근';
         const matchPct = Math.round((item.relevance_score || 0.5) * 100);
 
@@ -430,9 +458,15 @@
       const sourceStatus = {
         alphaxiv: "ok",
         googlenews_kr: "ok",
+        googlenews_en: "ok",
         hackernews: "ok",
         reddit: "ok",
-        github: "ok"
+        github: "ok",
+        bluesky: "ok",
+        youtube: "ok",
+        devto: "ok",
+        stackoverflow: "ok",
+        wikipedia: "ok"
       };
 
       const perPage = searchDepth === 'deep' ? 25 : 12;
@@ -486,13 +520,14 @@
         } catch (err) {}
       }
 
-      // 2. Google News Korea
+      // 2. Google News Korea & Global
       try {
         const gnewsKrUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(`https://news.google.com/rss/search?q=${encodeURIComponent(qObj.original)}+when:${searchDays}d&hl=ko&gl=KR&ceid=KR:ko`)}`;
         const res = await fetch(gnewsKrUrl);
         if (res.ok) {
           const data = await res.json();
           (data.items || []).slice(0, perPage).forEach(item => {
+            if (isAdItem(item)) return;
             if (item.title && item.link) {
               const cleanTitle = item.title.replace(/\s+-\s+[^-]+$/, '');
               const publisher = item.author || (item.title.match(/-\s+([^-]+)$/) || [])[1] || 'Google News Korea';
@@ -512,7 +547,7 @@
         }
       } catch (err) {}
 
-      // 3. Global English Sources (HackerNews, Reddit, GitHub)
+      // 3. Global Multi-Sources
       for (const globalQuery of qObj.globalQueries) {
         
         // HackerNews
@@ -567,7 +602,7 @@
           }
         } catch (err) {}
 
-        // GitHub
+        // GitHub Repositories
         try {
           const ghUrl = `https://api.github.com/search/repositories?q=${encodeURIComponent(globalQuery)}+pushed:>${cutoffDate}&sort=stars&order=desc&per_page=${perPage}`;
           const res = await fetch(ghUrl);
@@ -592,7 +627,142 @@
             });
           }
         } catch (err) {}
+
+        // Bluesky Public API
+        try {
+          const bskyUrl = `https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts?q=${encodeURIComponent(globalQuery)}&limit=${perPage}`;
+          const res = await fetch(bskyUrl);
+          if (res.ok) {
+            const data = await res.json();
+            (data.posts || []).forEach(post => {
+              const author = post.author?.handle || 'Bluesky User';
+              const text = post.record?.text || '';
+              const pubTs = new Date(post.indexedAt || Date.now()).getTime();
+              const likes = post.likeCount || 0;
+              const reposts = post.repostCount || 0;
+              const humanScore = likes * 2 + reposts * 4 + 100;
+              const postLink = `https://bsky.app/profile/${author}/post/${(post.uri || '').split('/').pop()}`;
+
+              if (text) {
+                rawFindings.push({
+                  candidate_id: `bsky-${osHash(post.uri || text)}`,
+                  source: 'bluesky',
+                  title: `🦋 [Bluesky @${author}] ${text.slice(0, 100)}...`,
+                  url: postLink,
+                  summary: text,
+                  published_at: new Date(pubTs).toISOString().split('T')[0],
+                  published_timestamp: pubTs,
+                  engagement: { likes, reposts, score_by_people: humanScore, publisher: `@${author}` }
+                });
+              }
+            });
+          }
+        } catch (err) {}
+
+        // YouTube Search Feed
+        try {
+          const ytUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(`https://www.youtube.com/feeds/videos.xml?search_query=${encodeURIComponent(globalQuery)}`)}`;
+          const res = await fetch(ytUrl);
+          if (res.ok) {
+            const data = await res.json();
+            (data.items || []).slice(0, perPage).forEach(item => {
+              if (item.title && item.link) {
+                const pubTs = item.pubDate ? new Date(item.pubDate).getTime() : nowMs;
+                rawFindings.push({
+                  candidate_id: `yt-${osHash(item.link)}`,
+                  source: 'youtube',
+                  title: `▶️ [YouTube] ${item.title}`,
+                  url: item.link,
+                  summary: item.description ? item.description.replace(/<[^>]*>/g, '').slice(0, 240) + '...' : `YouTube deep-dive video by ${item.author || 'Creator'}`,
+                  published_at: item.pubDate ? item.pubDate.split(' ')[0] : new Date().toISOString().split('T')[0],
+                  published_timestamp: pubTs,
+                  engagement: { publisher: item.author || 'YouTube Channel', score_by_people: 880 }
+                });
+              }
+            });
+          }
+        } catch (err) {}
+
+        // Dev.to API
+        try {
+          const devtoUrl = `https://dev.to/api/articles?search=${encodeURIComponent(globalQuery)}&per_page=${perPage}`;
+          const res = await fetch(devtoUrl);
+          if (res.ok) {
+            const articles = await res.json();
+            (Array.isArray(articles) ? articles : []).forEach(art => {
+              if (art.title && art.url) {
+                const reactions = art.positive_reactions_count || 0;
+                const comments = art.comments_count || 0;
+                const humanScore = reactions * 3 + comments * 5;
+                const pubTs = new Date(art.published_at || Date.now()).getTime();
+
+                rawFindings.push({
+                  candidate_id: `devto-${art.id}`,
+                  source: 'devto',
+                  title: `👩‍💻 [Dev.to] ${art.title}`,
+                  url: art.url,
+                  summary: art.description || `Technical guide and discussion by @${art.user?.username || 'developer'}`,
+                  published_at: art.published_at ? art.published_at.split('T')[0] : new Date().toISOString().split('T')[0],
+                  published_timestamp: pubTs,
+                  engagement: { reactions, comments, score_by_people: humanScore }
+                });
+              }
+            });
+          }
+        } catch (err) {}
+
+        // StackOverflow API
+        try {
+          const soUrl = `https://api.stackexchange.com/2.3/search/advanced?order=desc&sort=relevance&q=${encodeURIComponent(globalQuery)}&site=stackoverflow&pagesize=${perPage}`;
+          const res = await fetch(soUrl);
+          if (res.ok) {
+            const data = await res.json();
+            (data.items || []).forEach(q => {
+              if (q.title && q.link) {
+                const score = q.score || 0;
+                const answers = q.answer_count || 0;
+                const humanScore = score * 4 + answers * 6;
+                const pubTs = q.creation_date * 1000;
+
+                rawFindings.push({
+                  candidate_id: `so-${q.question_id}`,
+                  source: 'stackoverflow',
+                  title: `💬 [StackOverflow] ${q.title.replace(/&quot;/g, '"').replace(/&#39;/g, "'")}`,
+                  url: q.link,
+                  summary: `Developer question with ${score} votes, ${answers} answers, and ${q.view_count || 0} views.`,
+                  published_at: new Date(pubTs).toISOString().split('T')[0],
+                  published_timestamp: pubTs,
+                  engagement: { votes: score, answers, score_by_people: humanScore }
+                });
+              }
+            });
+          }
+        } catch (err) {}
       }
+
+      // Wikipedia KR & EN
+      try {
+        const wikiUrl = `https://ko.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(qObj.original)}&format=json&origin=*`;
+        const res = await fetch(wikiUrl);
+        if (res.ok) {
+          const data = await res.json();
+          (data.query?.search || []).slice(0, 5).forEach(item => {
+            if (item.title) {
+              const cleanSnippet = item.snippet.replace(/<[^>]*>/g, '');
+              rawFindings.push({
+                candidate_id: `wiki-kr-${item.pageid}`,
+                source: 'wikipedia',
+                title: `📚 [Wikipedia KR] ${item.title}`,
+                url: `https://ko.wikipedia.org/wiki/${encodeURIComponent(item.title)}`,
+                summary: cleanSnippet || `위키백과 항목 개요: ${item.title}`,
+                published_at: item.timestamp ? item.timestamp.split('T')[0] : new Date().toISOString().split('T')[0],
+                published_timestamp: item.timestamp ? new Date(item.timestamp).getTime() : nowMs,
+                engagement: { publisher: 'Wikipedia KR', score_by_people: 750 }
+              });
+            }
+          });
+        }
+      } catch (err) {}
 
       // Deduplicate by URL
       const uniqueMap = new Map();
@@ -625,7 +795,7 @@
         window_days: Number(searchDays),
         cutoff_date: new Date(cutoffMs).toISOString().split('T')[0],
         research_depth: searchDepth,
-        schema_version: "1.5",
+        schema_version: "2.0",
         as_of_date: new Date().toISOString().split('T')[0],
         source_status: sourceStatus,
         findings: finalClusteredFindings
@@ -649,13 +819,11 @@
           const data = await res.json();
           (data.hits || []).forEach(item => {
             if (item.title) {
-              let rawTitle = item.title.split(':')[0].split('–')[0].split('-')[0].trim();
-              if (rawTitle.length > 22) rawTitle = rawTitle.slice(0, 22) + '...';
-              dynamicTopics.push({
-                label: `🔥 ${rawTitle}`,
-                topic: item.title.slice(0, 40),
-                points: item.points || 0
-              });
+              const cleanTitle = item.title.replace(/^Show HN:\s*/i, '').replace(/^Ask HN:\s*/i, '');
+              const words = cleanTitle.split(' ');
+              if (words.length <= 4 && !dynamicTopics.some(t => t.topic === cleanTitle)) {
+                dynamicTopics.push({ label: `🔥 ${cleanTitle}`, topic: cleanTitle });
+              }
             }
           });
         }
@@ -714,11 +882,12 @@
           .then(data => setDoctorStatus(data))
           .catch(() => setDoctorStatus({
             status: 'ok',
-            version: 'v1.5',
+            version: 'v2.0',
             features: [
-              'Google News Multi-Publisher Story Clustering',
+              '10+ Multi-Source Global Pipeline (alphaXiv, Google News, HackerNews, Reddit, GitHub, Bluesky, YouTube, Dev.to, StackOverflow, Wikipedia)',
+              'Google News Multi-Publisher Story Clustering & Ad Filtering',
+              'Multi-Language & Multi-Keyword Concept Expansion Engine',
               'Human Score Info Modal & Tooltip',
-              'alphaXiv MCP Tools (discover_papers, get_paper_content, answer_pdf_queries)',
               'GitHub 2-Tier Sorting (1st Relevance, 2nd Stars Descending)',
               'Markdown (.md) Report Exporter'
             ]
@@ -735,23 +904,21 @@
       };
 
       const handleSearch = async (searchTopic = topic, searchDays = days, searchDepth = depth) => {
-        if (!searchTopic || !searchTopic.trim()) return;
+        if (!searchTopic.trim()) return;
 
         setIsLoading(true);
         setError(null);
-
-        const cleanTopic = searchTopic.trim();
+        setResultsData(null);
 
         try {
           const res = await fetch('/api/search', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              topic: cleanTopic,
+              topic: searchTopic,
               days: searchDays,
               depth: searchDepth,
-              sources: selectedSources,
-              competitors: competitors.trim()
+              competitors: competitors
             })
           });
 
@@ -763,10 +930,9 @@
               return;
             }
           }
-        } catch (err) {}
 
-        try {
-          const liveData = await fetchLiveClientResearch(cleanTopic, searchDays, searchDepth);
+          // Fallback to Live Multi-Source Research Engine
+          const liveData = await fetchLiveClientResearch(searchTopic, searchDays, searchDepth);
           setResultsData(liveData);
           setIsLoading(false);
         } catch (clientErr) {
@@ -824,6 +990,11 @@
           case 'hackernews': return 'badge-hackernews';
           case 'reddit': return 'badge-reddit';
           case 'github': return 'badge-github';
+          case 'bluesky': return 'badge-bluesky';
+          case 'youtube': return 'badge-youtube';
+          case 'devto': return 'badge-devto';
+          case 'stackoverflow': return 'badge-stackoverflow';
+          case 'wikipedia': return 'badge-wikipedia';
           default: return 'badge-platform';
         }
       };
@@ -849,8 +1020,8 @@
 
         if (sortBy === 'relevance') return (b.relevance_score || 0) - (a.relevance_score || 0);
         if (sortBy === 'scored_by_people') {
-          const scoreA = a.engagement?.score_by_people || a.engagement?.points || a.engagement?.score || a.engagement?.stars || 0;
-          const scoreB = b.engagement?.score_by_people || b.engagement?.points || b.engagement?.score || b.engagement?.stars || 0;
+          const scoreA = a.engagement?.score_by_people || a.engagement?.points || a.engagement?.score || a.engagement?.stars || a.engagement?.likes || 0;
+          const scoreB = b.engagement?.score_by_people || b.engagement?.points || b.engagement?.score || b.engagement?.stars || b.engagement?.likes || 0;
           return scoreB - scoreA;
         }
         if (sortBy === 'date') return (b.published_at || '').localeCompare(a.published_at || '');
@@ -883,144 +1054,166 @@
                     <h1 style={{ fontSize: '1.55rem', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.5px' }}>last30days</h1>
                   </div>
                   <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginTop: '3px' }}>
-                    실시간 소셜, 뉴스, 기술 커뮤니티 & alphaXiv 학술 논문 통합 딥 리서치
+                    10+ 글로벌 수집 소스 (뉴스, 학술논문, Reddit, GitHub, Bluesky, YouTube, Dev.to, StackOverflow, Wikipedia)
                   </p>
                 </div>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <button onClick={() => setIsHumanScoreModalOpen(true)} className="btn-secondary" style={{ fontSize: '0.86rem', padding: '10px 16px', borderColor: '#bfdbfe', color: '#2563eb' }}>
-                  <span>ℹ️ Human Score 안내</span>
+                <button
+                  onClick={() => setIsHumanScoreModalOpen(true)}
+                  className="btn-secondary"
+                  style={{ fontSize: '0.84rem', padding: '9px 16px', fontWeight: '700', borderColor: '#cbd5e1', color: '#0f172a' }}
+                >
+                  ℹ️ Human Score 안내
                 </button>
-                <button onClick={() => setIsDoctorOpen(true)} className="btn-secondary" style={{ fontSize: '0.86rem', padding: '10px 16px' }}>
-                  <span>🩺 System Health</span>
-                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' }}></span>
+                <button
+                  onClick={() => setIsDoctorOpen(true)}
+                  className="btn-secondary"
+                  style={{ fontSize: '0.84rem', padding: '9px 16px', fontWeight: '700', color: '#2563eb', borderColor: '#bfdbfe', background: '#eff6ff' }}
+                >
+                  🩺 System Health & Patch Notes
                 </button>
-                <a href="https://github.com/mvanhorn/last30days-skill" target="_blank" className="btn-secondary" style={{ fontSize: '0.86rem', padding: '10px 16px', textDecoration: 'none' }}>
-                  <span>🔥 Original Repo</span>
-                </a>
               </div>
 
-            </div>
-
-            <div style={{ marginTop: '24px', paddingTop: '18px', borderTop: '1px solid rgba(226, 232, 240, 0.8)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-              <div className="scroll-container-feather" style={{ flex: 1 }}>
-                <span style={{ fontSize: '0.82rem', fontWeight: '800', color: '#2563eb', whiteSpace: 'nowrap', marginRight: '6px' }}>
-                  ⚡ 24H 실시간 트렌드:
-                </span>
-                {hotTrends.map((item, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => { setTopic(item.topic); handleSearch(item.topic, days, depth); }}
-                    style={{
-                      background: 'rgba(239, 246, 255, 0.9)',
-                      border: '1px solid rgba(191, 219, 254, 0.9)',
-                      color: '#1d4ed8',
-                      padding: '6px 14px',
-                      borderRadius: '20px',
-                      fontSize: '0.82rem',
-                      fontWeight: '700',
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap',
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-              <button onClick={load24HTrends} disabled={isFetchingTrends} style={{ background: 'none', border: 'none', color: 'var(--blue-primary)', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer', padding: '4px 8px', whiteSpace: 'nowrap' }}>
-                {isFetchingTrends ? '🔄 갱신 중...' : '🔄 트렌드 새로고침'}
-              </button>
             </div>
           </header>
 
-          <div className="glass-panel" style={{ padding: '32px', marginBottom: '28px' }}>
-            <div style={{ display: 'flex', gap: '14px', marginBottom: '24px', flexWrap: 'wrap' }}>
-              <input
-                type="text"
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && !isLoading && handleSearch(topic, days, depth)}
-                placeholder="조사할 주제, 키워드를 입력하세요 (예: Claude 3.7, Nvidia 실적, DeepSeek V3)..."
-                style={{ flex: 1, minWidth: '280px', height: '54px', padding: '0 20px', background: 'rgba(255, 255, 255, 0.95)', border: '1px solid var(--border-glass)', borderRadius: 'var(--radius-sm)', color: 'var(--text-main)', fontSize: '1.05rem', fontWeight: '500', outline: 'none' }}
-              />
-              <button onClick={() => handleSearch(topic, days, depth)} disabled={isLoading || !topic.trim()} className="btn-primary" style={{ height: '54px', padding: '0 32px', fontSize: '1.05rem', whiteSpace: 'nowrap' }}>
-                {isLoading ? (
-                  <>
-                    <div className="spinner" style={{ width: '18px', height: '18px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%' }} />
-                    <span>실시간 수집 중...</span>
-                  </>
+          {/* 24시간 실시간 트렌드 바 */}
+          <div className="glass-panel" style={{ padding: '16px 24px', marginBottom: '28px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: '1.1rem' }}>⚡</span>
+                <span style={{ fontSize: '0.86rem', fontWeight: '800', color: '#2563eb' }}>24H HOT 트렌드:</span>
+              </div>
+
+              <div className="scroll-container-feather" style={{ flex: 1 }}>
+                {isFetchingTrends ? (
+                  <span style={{ fontSize: '0.82rem', color: 'var(--text-dim)' }}>실시간 핫 이슈 탐색 중...</span>
                 ) : (
-                  <span>🌊 딥 리서치 실행</span>
-                )}
-              </button>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px', paddingTop: '22px', borderTop: '1px solid rgba(226, 232, 240, 0.8)' }}>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                  <label style={{ fontSize: '0.8rem', fontWeight: '800', color: 'var(--text-dim)' }}>조사 기간 (LOOKBACK DAYS)</label>
-                  <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#16a34a' }}>
-                    {days}일 이내만 수집
-                  </span>
-                </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  {[7, 14, 30, 90].map(d => (
-                    <button key={d} onClick={() => { setDays(d); handleSearch(topic, d, depth); }} style={{ flex: 1, padding: '10px 0', fontSize: '0.85rem', fontWeight: '700', borderRadius: '8px', border: days === d ? '1.5px solid var(--blue-primary)' : '1px solid var(--border-glass)', background: days === d ? 'rgba(37, 99, 235, 0.12)' : '#ffffff', color: days === d ? '#2563eb' : 'var(--text-main)', cursor: 'pointer' }}>
-                      {d}일간
+                  hotTrends.map((item, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => { setTopic(item.topic); handleSearch(item.topic, days, depth); }}
+                      style={{
+                        background: '#ffffff', border: '1px solid var(--border-glass)',
+                        padding: '6px 14px', borderRadius: '20px', fontSize: '0.82rem', fontWeight: '700',
+                        color: '#0f172a', cursor: 'pointer', whiteSpace: 'nowrap',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                      }}
+                    >
+                      {item.label}
                     </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                  <label style={{ fontSize: '0.8rem', fontWeight: '800', color: 'var(--text-dim)' }}>탐색 깊이 (RESEARCH DEPTH)</label>
-                  <span style={{ fontSize: '0.72rem', fontWeight: '700', color: depth === 'deep' ? '#7c3aed' : '#0284c7' }}>
-                    {depth === 'deep' ? '25건 수집 + 다중 확장' : '12건 빠른 수집'}
-                  </span>
-                </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    onClick={() => { setDepth('quick'); handleSearch(topic, days, 'quick'); }}
-                    style={{
-                      flex: 1, padding: '10px 0', fontSize: '0.85rem', fontWeight: '700', borderRadius: '8px',
-                      border: depth === 'quick' ? '1.5px solid #0284c7' : '1px solid var(--border-glass)',
-                      background: depth === 'quick' ? 'rgba(2, 132, 199, 0.12)' : '#ffffff',
-                      color: depth === 'quick' ? '#0284c7' : 'var(--text-main)', cursor: 'pointer'
-                    }}
-                  >
-                    ⚡ Quick (빠름)
-                  </button>
-                  <button
-                    onClick={() => { setDepth('deep'); handleSearch(topic, days, 'deep'); }}
-                    style={{
-                      flex: 1, padding: '10px 0', fontSize: '0.85rem', fontWeight: '700', borderRadius: '8px',
-                      border: depth === 'deep' ? '1.5px solid #7c3aed' : '1px solid var(--border-glass)',
-                      background: depth === 'deep' ? 'rgba(124, 58, 237, 0.12)' : '#ffffff',
-                      color: depth === 'deep' ? '#7c3aed' : 'var(--text-main)', cursor: 'pointer'
-                    }}
-                  >
-                    🔬 Deep (정밀 딥 리서치)
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '800', color: 'var(--text-dim)', marginBottom: '10px' }}>경쟁사 비교 (VS MODE)</label>
-                <input type="text" value={competitors} onChange={(e) => setCompetitors(e.target.value)} placeholder="예: Anthropic, OpenAI, DeepSeek" style={{ width: '100%', height: '40px', padding: '0 14px', background: '#ffffff', border: '1px solid var(--border-glass)', borderRadius: '8px', color: '#0f172a', fontSize: '0.85rem', outline: 'none' }} />
+                  ))
+                )}
               </div>
             </div>
           </div>
 
-          {/* Sources Breakdown Grid */}
+          {/* 검색 패널 */}
+          <div className="glass-panel" style={{ padding: '32px', marginBottom: '32px', borderRadius: 'var(--radius-lg)' }}>
+            <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }}>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '14px', marginBottom: '20px' }}>
+                <input
+                  type="text"
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                  placeholder="조사할 주제 또는 키워드를 입력하세요 (예: Claude 3.7, Nvidia 실적, DeepSeek V3, React 19)"
+                  style={{
+                    width: '100%', padding: '16px 20px', fontSize: '1.05rem', fontWeight: '600',
+                    borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border-glass)',
+                    background: '#ffffff', color: '#0f172a', outline: 'none',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
+                  }}
+                />
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="btn-primary"
+                  style={{ padding: '0 36px', fontSize: '1rem' }}
+                >
+                  {isLoading ? (
+                    <>
+                      <span className="spinner">🔄</span> 수집 조사 중...
+                    </>
+                  ) : (
+                    <>🔍 딥 리서치 실행</>
+                  )}
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', background: 'rgba(241, 245, 249, 0.6)', padding: '16px 20px', borderRadius: 'var(--radius-sm)' }}>
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
+                  <div>
+                    <label style={{ fontSize: '0.8rem', fontWeight: '800', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                      📅 조사 기간 (Lookback Days)
+                    </label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {[7, 14, 30, 90].map(d => (
+                        <button
+                          key={d}
+                          type="button"
+                          onClick={() => setDays(d)}
+                          style={{
+                            padding: '6px 14px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: '700',
+                            border: '1px solid', cursor: 'pointer',
+                            borderColor: days === d ? '#2563eb' : '#cbd5e1',
+                            background: days === d ? '#2563eb' : '#ffffff',
+                            color: days === d ? '#ffffff' : '#475569'
+                          }}
+                        >
+                          {d}일
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '0.8rem', fontWeight: '800', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                      ⚡ 탐색 깊이 (Research Depth)
+                    </label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {[
+                        { id: 'quick', label: 'Quick (빠른 수집)' },
+                        { id: 'deep', label: 'Deep (심층 탐색)' }
+                      ].map(dp => (
+                        <button
+                          key={dp.id}
+                          type="button"
+                          onClick={() => setDepth(dp.id)}
+                          style={{
+                            padding: '6px 14px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: '700',
+                            border: '1px solid', cursor: 'pointer',
+                            borderColor: depth === dp.id ? '#2563eb' : '#cbd5e1',
+                            background: depth === dp.id ? '#2563eb' : '#ffffff',
+                            color: depth === dp.id ? '#ffffff' : '#475569'
+                          }}
+                        >
+                          {dp.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', fontWeight: '600' }}>
+                  ✓ 자동 다국어 번역 & 10대 소스 통합 파이프라인 가동
+                </div>
+
+              </div>
+
+            </form>
+          </div>
+
+          {/* 소스 수집 현황 카드 Grid */}
           {resultsData && (
-            <div className="glass-panel" style={{ padding: '26px 32px', marginBottom: '28px', background: 'linear-gradient(135deg, rgba(255,255,255,0.96) 0%, rgba(239,246,255,0.65) 100%)' }}>
+            <div className="glass-panel" style={{ padding: '24px', marginBottom: '28px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', flexWrap: 'wrap', gap: '10px' }}>
                 <div>
                   <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#0f172a' }}>
-                    📊 Sources Breakdown
+                    📊 10+ Multi-Sources Breakdown
                   </h3>
                   <p style={{ fontSize: '0.84rem', color: 'var(--text-dim)', marginTop: '3px' }}>
                     검색 키워드 <strong>"{resultsData.query_topic}"</strong>에 대해 수집된 총 <strong>{findings.length}개</strong> 항목
@@ -1028,25 +1221,30 @@
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' }}>
                 {[
                   { name: 'alphaXiv', key: 'alphaxiv', icon: '📄' },
+                  { name: 'Google News', key: 'googlenews', icon: '📰' },
                   { name: 'Reddit', key: 'reddit', icon: '🔴' },
                   { name: 'HackerNews', key: 'hackernews', icon: '🟠' },
                   { name: 'GitHub', key: 'github', icon: '🐙' },
-                  { name: 'Google News', key: 'googlenews', icon: '📰' }
+                  { name: 'Bluesky', key: 'bluesky', icon: '🦋' },
+                  { name: 'YouTube', key: 'youtube', icon: '▶️' },
+                  { name: 'Dev.to', key: 'devto', icon: '👩‍💻' },
+                  { name: 'StackOverflow', key: 'stackoverflow', icon: '💬' },
+                  { name: 'Wikipedia', key: 'wikipedia', icon: '📚' }
                 ].map((src, idx) => {
                   const count = findings.filter(f => (f.source || '').toLowerCase().includes(src.key)).length;
                   return (
-                    <div key={idx} style={{ background: '#ffffff', padding: '16px', borderRadius: '14px', border: '1px solid rgba(226, 232, 240, 0.9)', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                        <span style={{ fontSize: '1.1rem' }}>{src.icon}</span>
-                        <span style={{ fontSize: '0.72rem', fontWeight: '800', color: count > 0 ? '#16a34a' : '#64748b', background: count > 0 ? '#f0fdf4' : '#f1f5f9', padding: '2px 8px', borderRadius: '10px' }}>
-                          {count > 0 ? 'Active' : 'Filtered'}
+                    <div key={idx} style={{ background: '#ffffff', padding: '14px', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.9)', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                        <span style={{ fontSize: '1.05rem' }}>{src.icon}</span>
+                        <span style={{ fontSize: '0.7rem', fontWeight: '800', color: count > 0 ? '#16a34a' : '#64748b', background: count > 0 ? '#f0fdf4' : '#f1f5f9', padding: '2px 7px', borderRadius: '10px' }}>
+                          {count > 0 ? 'Active' : 'Empty'}
                         </span>
                       </div>
-                      <div style={{ fontSize: '0.88rem', fontWeight: '800', color: '#0f172a' }}>{src.name}</div>
-                      <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)', fontWeight: '600', marginTop: '2px' }}>{count}개 항목 수집</div>
+                      <div style={{ fontSize: '0.84rem', fontWeight: '800', color: '#0f172a' }}>{src.name}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontWeight: '600', marginTop: '2px' }}>{count}개 항목 수집</div>
                     </div>
                   );
                 })}
@@ -1099,303 +1297,238 @@
                     onChange={(e) => setSortBy(e.target.value)}
                     style={{ background: '#ffffff', border: '1px solid var(--border-glass)', color: '#0f172a', padding: '8px 14px', borderRadius: '8px', fontSize: '0.85rem', outline: 'none', fontWeight: '700' }}
                   >
-                    <option value="relevance">🎯 정밀 키워드 적합도 순</option>
-                    <option value="scored_by_people">🏆 Scored by People 순 (추천/반응순)</option>
-                    <option value="date">📅 최신 순</option>
+                    <option value="relevance">적합도 높은 순</option>
+                    <option value="scored_by_people">Human Score 높은 순</option>
+                    <option value="date">최신순</option>
                   </select>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-                {filteredFindings.map((item, idx) => {
-                  const matchPct = Math.round((item.relevance_score || 0.5) * 100);
-                  const eng = item.engagement || {};
-                  const isAlphaXiv = item.source === 'alphaxiv';
-                  const humanScore = eng.score_by_people || eng.points || eng.score || eng.stars || 0;
+              {filteredFindings.length === 0 ? (
+                <div className="glass-panel" style={{ padding: '48px', textAlign: 'center', color: 'var(--text-dim)' }}>
+                  선택한 필터 조건에 부합하는 수집 항목이 없습니다.
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gap: '18px' }}>
+                  {filteredFindings.map((item, idx) => {
+                    const score = item.engagement?.score_by_people || item.engagement?.points || item.engagement?.stars || item.engagement?.likes || 0;
+                    const matchPct = Math.round((item.relevance_score || 0.5) * 100);
 
-                  const matchColor = matchPct >= 85 ? '#16a34a' : (matchPct >= 65 ? '#2563eb' : '#d97706');
-                  const matchBg = matchPct >= 85 ? '#f0fdf4' : (matchPct >= 65 ? '#eff6ff' : '#fffbeb');
-                  const matchBorder = matchPct >= 85 ? '#bbf7d0' : (matchPct >= 65 ? '#bfdbfe' : '#fef3c7');
-
-                  return (
-                    <div key={idx} className="glass-panel glass-panel-interactive" style={{ padding: '26px', border: isAlphaXiv ? '1px solid var(--purple-border)' : '1px solid var(--border-glass)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <span className={getBadgeClass(item.source)}>{item.source || 'web'}</span>
-                          
-                          {/* Google News Multi-Publisher Cluster Badge */}
-                          {item.is_clustered && (
-                            <span style={{ fontSize: '0.78rem', fontWeight: '800', color: '#16a34a', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '3px 10px', borderRadius: '12px' }}>
-                              📰 {item.engagement?.publisher} 종합 보도
-                            </span>
-                          )}
-
-                          {eng.stars ? (
-                            <span style={{ fontSize: '0.78rem', fontWeight: '800', color: '#ca8a04', background: '#fefce8', border: '1px solid #fef08a', padding: '3px 10px', borderRadius: '12px' }}>
-                              ⭐ Stars {eng.stars.toLocaleString()}개
-                            </span>
-                          ) : humanScore > 0 ? (
-                            <button
-                              onClick={() => setIsHumanScoreModalOpen(true)}
-                              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                              title="Human Score 설명 보기"
-                            >
-                              <span style={{ fontSize: '0.78rem', fontWeight: '800', color: '#2563eb', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '3px 10px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                👍 Human Score: {humanScore.toLocaleString()} <span style={{ fontSize: '0.7rem', opacity: 0.8 }}>ℹ️</span>
-                              </span>
-                            </button>
-                          ) : null}
-                        </div>
+                    return (
+                      <div key={idx} className="glass-panel glass-panel-interactive" style={{ padding: '24px' }}>
                         
-                        <span style={{
-                          fontSize: '0.78rem',
-                          fontWeight: '800',
-                          color: matchColor,
-                          background: matchBg,
-                          border: `1px solid ${matchBorder}`,
-                          padding: '3px 10px',
-                          borderRadius: '12px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px'
-                        }}>
-                          🎯 키워드 일치율 {matchPct}%
-                        </span>
-                      </div>
-
-                      <h3 style={{ fontSize: '1.15rem', fontWeight: '800', marginBottom: '12px', lineHeight: '1.45' }}>
-                        <a href={item.url} target="_blank" style={{ color: '#0f172a', textDecoration: 'none' }}>
-                          {item.title}
-                        </a>
-                      </h3>
-
-                      {item.summary && (
-                        <p style={{ fontSize: '0.92rem', color: 'var(--text-muted)', marginBottom: '18px', lineHeight: '1.65' }}>
-                          {item.summary}
-                        </p>
-                      )}
-
-                      {/* Google News Multi-Publisher Cluster Accordion */}
-                      {item.is_clustered && item.related_articles && (
-                        <div style={{ marginBottom: '18px', background: '#f8fafc', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: '0.84rem', fontWeight: '800', color: '#15803d' }}>
-                              📰 동일 이슈 언급 매체 ({item.cluster_count}개 출처): {item.publishers_list.join(', ')}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '10px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <span className={`badge-platform ${getBadgeClass(item.source)}`}>
+                              {item.source}
                             </span>
-                            <button
-                              onClick={() => toggleClusterAccordion(idx)}
-                              style={{ background: '#ffffff', border: '1px solid #cbd5e1', padding: '4px 10px', borderRadius: '6px', fontSize: '0.78rem', fontWeight: '700', cursor: 'pointer', color: '#334155' }}
-                            >
-                              {expandedClusters[idx] ? '▲ 출처 목록 접기' : '▼ 복수 매체 기사 보기'}
-                            </button>
+                            
+                            {item.is_clustered && (
+                              <span style={{ fontSize: '0.74rem', fontWeight: '800', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', padding: '3px 9px', borderRadius: '12px' }}>
+                                📰 {item.publishers_list[0]} 외 {item.cluster_count - 1}개 매체 종합 보도
+                              </span>
+                            )}
+
+                            <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)', fontWeight: '600' }}>
+                              작성일: {item.published_at || '최근'}
+                            </span>
                           </div>
 
-                          {expandedClusters[idx] && (
-                            <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                              {item.related_articles.map((rel, rIdx) => (
-                                <div key={rIdx} style={{ fontSize: '0.82rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <a href={rel.url} target="_blank" style={{ color: '#0f172a', textDecoration: 'none', fontWeight: '600', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                    • [{rel.engagement?.publisher || '뉴스'}] {rel.title}
-                                  </a>
-                                  <span style={{ color: '#64748b', marginLeft: '12px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>{rel.published_at}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <span style={{ fontSize: '0.8rem', fontWeight: '800', color: '#2563eb', background: '#eff6ff', padding: '3px 10px', borderRadius: '12px', border: '1px solid #bfdbfe' }}>
+                              적합도: {matchPct}%
+                            </span>
+                            <span style={{ fontSize: '0.8rem', fontWeight: '800', color: '#9333ea', background: '#faf5ff', padding: '3px 10px', borderRadius: '12px', border: '1px solid #e9d5ff' }}>
+                              Human Score: {score.toLocaleString()}
+                            </span>
+                          </div>
                         </div>
-                      )}
 
-                      {/* alphaXiv MCP Tools */}
-                      {isAlphaXiv && (
-                        <div style={{ marginBottom: '16px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                          <button
-                            onClick={() => { setActivePaperModal(item); setPaperModalType('content'); }}
-                            className="btn-purple"
-                          >
-                            <span>📄 [get_paper_content] 본문 요약 리포트</span>
-                          </button>
-                          <button
-                            onClick={() => { setActivePaperModal(item); setPaperModalType('qa'); setPdfQueryResult(null); setPdfQueryInput(''); }}
-                            className="btn-purple"
-                            style={{ background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)' }}
-                          >
-                            <span>❓ [answer_pdf_queries] PDF 질의응답</span>
-                          </button>
-                        </div>
-                      )}
+                        <h3 style={{ fontSize: '1.18rem', fontWeight: '800', marginBottom: '10px', color: '#0f172a' }}>
+                          <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>
+                            {item.title} ↗
+                          </a>
+                        </h3>
 
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '14px', borderTop: '1px solid rgba(226, 232, 240, 0.7)', fontSize: '0.84rem', color: 'var(--text-dim)' }}>
-                        <div style={{ display: 'flex', gap: '16px', fontWeight: '600' }}>
-                          {item.authors ? <span>✍️ 저자: {item.authors}</span> : null}
-                          {eng.publisher ? <span>📰 {eng.publisher}</span> : null}
-                          {eng.points || eng.score ? <span>👍 추천 {eng.points || eng.score}</span> : null}
-                          {eng.comments || eng.num_comments ? <span>💬 댓글 {eng.comments || eng.num_comments}개</span> : null}
-                          {eng.stars ? <span>⭐ Stars {eng.stars.toLocaleString()}</span> : null}
-                          {item.published_at ? <span style={{ color: '#16a34a', fontWeight: '700' }}>📅 {item.published_at}</span> : null}
-                        </div>
-                        <a href={item.url} target="_blank" style={{ color: isAlphaXiv ? '#9333ea' : '#2563eb', textDecoration: 'none', fontWeight: '700' }}>
-                          {isAlphaXiv ? '📄 alphaXiv 논문 열기 ↗' : '게시글 / Repo 열기 ↗'}
-                        </a>
+                        <p style={{ fontSize: '0.92rem', color: 'var(--text-muted)', marginBottom: '14px', lineHeight: '1.65' }}>
+                          {item.summary}
+                        </p>
+
+                        {/* Google News Accordion */}
+                        {item.is_clustered && (
+                          <div style={{ marginTop: '12px', borderTop: '1px solid var(--border-glass)', paddingTop: '12px' }}>
+                            <button
+                              onClick={() => toggleClusterAccordion(idx)}
+                              style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: '0.84rem', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                            >
+                              {expandedClusters[idx] ? '▲ 관련 매체 기사 접기' : `▼ 동일 이슈를 보도한 다른 매체 기사 ${item.cluster_count - 1}개 더보기`}
+                            </button>
+
+                            {expandedClusters[idx] && (
+                              <div style={{ marginTop: '10px', background: '#f8fafc', padding: '14px', borderRadius: '10px', display: 'grid', gap: '8px' }}>
+                                {item.related_articles.map((rel, rIdx) => (
+                                  <div key={rIdx} style={{ fontSize: '0.85rem', display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
+                                    <a href={rel.url} target="_blank" rel="noopener noreferrer" style={{ color: '#334155', textDecoration: 'none', fontWeight: '600' }}>
+                                      • [{rel.engagement?.publisher || '언론사'}] {rel.title} ↗
+                                    </a>
+                                    <span style={{ color: 'var(--text-dim)', fontSize: '0.78rem' }}>{rel.published_at}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* alphaXiv MCP Actions */}
+                        {item.source === 'alphaxiv' && (
+                          <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
+                            <button
+                              onClick={() => { setActivePaperModal(item); setPaperModalType('content'); }}
+                              className="btn-purple"
+                            >
+                              📖 get_paper_content (전문 읽기)
+                            </button>
+                            <button
+                              onClick={() => { setActivePaperModal(item); setPaperModalType('query'); }}
+                              className="btn-purple"
+                              style={{ background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)' }}
+                            >
+                              ❓ answer_pdf_queries (PDF Q&A)
+                            </button>
+                          </div>
+                        )}
+
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
-          {/* Human Score Explanation Modal */}
-          {isHumanScoreModalOpen && (
-            <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100 }}>
-              <div className="glass-panel" style={{ width: '90%', maxWidth: '620px', padding: '32px', background: '#ffffff', borderRadius: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span>👍 Human Score (사람의 관심도 점수) 안내</span>
-                  </h3>
-                  <button onClick={() => setIsHumanScoreModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#64748b' }}>✕</button>
-                </div>
-
-                <div style={{ background: '#eff6ff', padding: '20px', borderRadius: '14px', border: '1px solid #bfdbfe', marginBottom: '20px', fontSize: '0.92rem', color: '#1e40af', lineHeight: '1.7' }}>
-                  <strong>Human Score</strong>는 검색 알고리즘이나 광고가 만든 순위가 아니라, <strong>실제 대중(Human)이 매긴 실제 관심도 및 참여도 정량 지표</strong>입니다.
-                </div>
-
-                <h4 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#0f172a', marginBottom: '10px' }}>플랫폼별 Human Score 산출 기준:</h4>
-                <ul style={{ fontSize: '0.88rem', color: '#334155', lineHeight: '1.8', paddingLeft: '20px', marginBottom: '20px' }}>
-                  <li><strong>Reddit</strong>: `Post Upvote 점수 + (댓글 수 × 2)`</li>
-                  <li><strong>HackerNews</strong>: `Upvote Points × 2 + (댓글 수 × 3)`</li>
-                  <li><strong>GitHub</strong>: `Repository Stars + (Forks × 3)`</li>
-                  <li><strong>Google News / alphaXiv</strong>: 언론사 신뢰도 & 대중 인기도 종합 점수</li>
-                </ul>
-
-                <p style={{ fontSize: '0.84rem', color: '#64748b' }}>
-                  💡 <strong>Scored by the People</strong>: 구글 검색엔진이 상단에 숨기는 사람들의 진짜 미화되지 않은 의견과 관심도를 파악할 수 있도록 돕습니다.
-                </p>
-
-                <div style={{ marginTop: '24px', textAlign: 'right' }}>
-                  <button onClick={() => setIsHumanScoreModalOpen(false)} className="btn-primary" style={{ padding: '10px 24px' }}>확인</button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* alphaXiv MCP Tool Action Modal */}
+          {/* alphaXiv Modal */}
           {activePaperModal && (
-            <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.5)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100 }}>
-              <div className="glass-panel" style={{ width: '90%', maxWidth: '720px', padding: '32px', background: '#ffffff', borderRadius: '20px', maxHeight: '85vh', overflowY: 'auto' }}>
+            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+              <div className="glass-panel" style={{ background: '#ffffff', maxWidth: '750px', width: '100%', maxHeight: '85vh', overflowY: 'auto', padding: '32px', borderRadius: 'var(--radius-lg)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0f172a' }}>
-                    {paperModalType === 'content' ? '📄 alphaXiv get_paper_content 리포트' : '❓ alphaXiv answer_pdf_queries Q&A'}
-                  </h3>
-                  <button onClick={() => setActivePaperModal(null)} style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#64748b' }}>✕</button>
+                  <span className="badge-platform badge-alphaxiv">📄 alphaXiv MCP Tool</span>
+                  <button onClick={() => setActivePaperModal(null)} style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer' }}>✕</button>
                 </div>
 
-                <div style={{ background: '#faf5ff', padding: '16px', borderRadius: '12px', border: '1px solid #e9d5ff', marginBottom: '20px' }}>
-                  <div style={{ fontWeight: '800', color: '#9333ea', fontSize: '1.02rem', marginBottom: '4px' }}>
-                    {activePaperModal.title}
-                  </div>
-                  <div style={{ fontSize: '0.82rem', color: '#64748b' }}>
-                    저자: {activePaperModal.authors || 'alphaXiv Research Group'} | URL: <a href={activePaperModal.url} target="_blank" style={{ color: '#9333ea' }}>{activePaperModal.url}</a>
-                  </div>
-                </div>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: '800', marginBottom: '10px', color: '#0f172a' }}>
+                  {activePaperModal.title}
+                </h2>
+                <p style={{ fontSize: '0.84rem', color: 'var(--text-dim)', marginBottom: '16px' }}>
+                  저자진: {activePaperModal.authors} | Published: {activePaperModal.published_at}
+                </p>
 
                 {paperModalType === 'content' ? (
                   <div>
-                    <h4 style={{ fontSize: '0.95rem', fontWeight: '800', marginBottom: '10px', color: '#0f172a' }}>AI 추출 리포트 & 초록 (Abstract Report):</h4>
-                    <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.9rem', color: '#334155', lineHeight: '1.7', whiteSpace: 'pre-wrap' }}>
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: '800', marginBottom: '8px', color: '#9333ea' }}>📄 논문 초록 & 주요 내용 (get_paper_content):</h4>
+                    <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', fontSize: '0.9rem', lineHeight: '1.7', color: '#334155', whiteSpace: 'pre-wrap' }}>
                       {activePaperModal.full_summary || activePaperModal.summary}
                     </div>
                   </div>
                 ) : (
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.88rem', fontWeight: '800', color: '#0f172a', marginBottom: '8px' }}>
-                      이 논문(PDF)에 대해 알고 싶은 질의(Question)를 입력하세요:
-                    </label>
-                    <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: '800', marginBottom: '8px', color: '#0284c7' }}>❓ PDF 질의응답 (answer_pdf_queries):</h4>
+                    <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
                       <input
                         type="text"
                         value={pdfQueryInput}
                         onChange={(e) => setPdfQueryInput(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleAskPdfQuery(activePaperModal)}
-                        placeholder="예: 이 논문의 핵심 평가 수치(Benchmark)와 한계점은?"
-                        style={{ flex: 1, padding: '12px 16px', border: '1px solid #cbd5e1', borderRadius: '8px', outline: 'none', fontSize: '0.9rem' }}
+                        placeholder="논문에 대해 질문하세요 (예: 주요 벤치마크 성과는?)"
+                        style={{ flex: 1, padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', outline: 'none' }}
                       />
                       <button
                         onClick={() => handleAskPdfQuery(activePaperModal)}
-                        disabled={isAskingPdf || !pdfQueryInput.trim()}
-                        className="btn-purple"
-                        style={{ padding: '12px 20px', whiteSpace: 'nowrap' }}
+                        disabled={isAskingPdf}
+                        className="btn-primary"
+                        style={{ padding: '0 20px', fontSize: '0.88rem' }}
                       >
-                        {isAskingPdf ? '분석 중...' : '질의하기'}
+                        {isAskingPdf ? '분석 중...' : '질문 전송'}
                       </button>
                     </div>
 
                     {pdfQueryResult && (
-                      <div style={{ background: '#f0f9ff', padding: '20px', borderRadius: '12px', border: '1px solid #bae6fd' }}>
-                        <div style={{ fontWeight: '800', color: '#0284c7', marginBottom: '8px', fontSize: '0.9rem' }}>
-                          🎯 answer_pdf_queries response (신뢰도: {pdfQueryResult.confidence})
-                        </div>
-                        <div style={{ fontSize: '0.88rem', color: '#0f172a', lineHeight: '1.65', whiteSpace: 'pre-wrap' }}>
-                          {pdfQueryResult.answer}
-                        </div>
+                      <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', padding: '16px', borderRadius: '12px', color: '#0369a1', fontSize: '0.9rem' }}>
+                        <div style={{ fontWeight: '800', marginBottom: '6px' }}>🎯 답변 (신뢰도 {pdfQueryResult.confidence}):</div>
+                        <div style={{ whiteSpace: 'pre-wrap' }}>{pdfQueryResult.answer}</div>
                       </div>
                     )}
                   </div>
                 )}
-
-                <div style={{ marginTop: '24px', textAlign: 'right' }}>
-                  <button onClick={() => setActivePaperModal(null)} className="btn-primary" style={{ padding: '10px 24px' }}>닫기</button>
-                </div>
               </div>
             </div>
           )}
 
-          {/* System Health Modal */}
-          {isDoctorOpen && (
-            <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-              <div className="glass-panel" style={{ width: '90%', maxWidth: '580px', padding: '32px', background: '#ffffff' }}>
-                <h3 style={{ marginBottom: '18px', color: '#0f172a', fontSize: '1.25rem', fontWeight: '800' }}>🩺 System Health & Patch Notes</h3>
-                <pre style={{ background: '#f8fafc', padding: '18px', borderRadius: '12px', fontSize: '0.84rem', border: '1px solid #e2e8f0', color: '#334155', whiteSpace: 'pre-wrap' }}>
-                  {JSON.stringify(doctorStatus, null, 2)}
-                </pre>
-                <div style={{ marginTop: '24px', textAlign: 'right' }}>
-                  <button onClick={() => setIsDoctorOpen(false)} className="btn-primary" style={{ padding: '10px 24px' }}>닫기</button>
+          {/* Export Modal */}
+          {isExportOpen && (
+            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+              <div className="glass-panel" style={{ background: '#ffffff', maxWidth: '750px', width: '100%', maxHeight: '85vh', overflowY: 'auto', padding: '32px', borderRadius: 'var(--radius-lg)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0f172a' }}>📥 마크다운 (.md) 문서 내보내기</h3>
+                  <button onClick={() => setIsExportOpen(false)} style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer' }}>✕</button>
                 </div>
-              </div>
-            </div>
-          )}
-
-          {/* Markdown Report Export Modal */}
-          {isExportOpen && resultsData && (
-            <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-              <div className="glass-panel" style={{ width: '90%', maxWidth: '780px', padding: '32px', background: '#ffffff', borderRadius: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
-                  <h3 style={{ color: '#0f172a', fontSize: '1.25rem', fontWeight: '800' }}>📥 마크다운 (.md) 리서치 보고서 내보내기</h3>
-                  <button onClick={() => setIsExportOpen(false)} style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#64748b' }}>✕</button>
-                </div>
-
-                <p style={{ fontSize: '0.88rem', color: '#64748b', marginBottom: '16px' }}>
-                  생성된 딥 리서치 보고서를 GitHub Flavored Markdown 문서로 복사하거나 <code>.md</code> 파일로 직접 저장할 수 있습니다.
-                </p>
 
                 <textarea
                   readOnly
                   value={generateMarkdownReport(resultsData)}
-                  style={{ width: '100%', height: '360px', background: '#f8fafc', color: '#0f172a', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px', fontFamily: 'JetBrains Mono, monospace', fontSize: '0.84rem', outline: 'none', lineHeight: '1.6' }}
+                  style={{ width: '100%', height: '320px', padding: '16px', borderRadius: '12px', border: '1px solid #cbd5e1', fontFamily: 'JetBrains Mono, monospace', fontSize: '0.82rem', marginBottom: '20px', resize: 'vertical' }}
                 />
 
-                <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <button onClick={handleCopyMarkdown} className="btn-secondary" style={{ padding: '12px 20px', fontWeight: '700' }}>
-                    {copySuccess ? '✅ 마크다운 복사 완료!' : '📋 클립보드에 복사'}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                  <button onClick={handleCopyMarkdown} className="btn-secondary">
+                    {copySuccess ? '✓ 복사 완료!' : '📋 클립보드 복사'}
                   </button>
+                  <button onClick={handleDownloadMarkdown} className="btn-primary">
+                    💾 .md 파일 다운로드
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
-                  <div style={{ display: 'flex', gap: '12px' }}>
-                    <button onClick={handleDownloadMarkdown} className="btn-primary" style={{ padding: '12px 24px' }}>
-                      💾 .md 파일로 다운로드
-                    </button>
-                    <button onClick={() => setIsExportOpen(false)} className="btn-secondary" style={{ padding: '12px 20px' }}>
-                      닫기
-                    </button>
-                  </div>
+          {/* Human Score Modal */}
+          {isHumanScoreModalOpen && (
+            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+              <div className="glass-panel" style={{ background: '#ffffff', maxWidth: '600px', width: '100%', padding: '32px', borderRadius: 'var(--radius-lg)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: '800', color: '#0f172a' }}>ℹ️ Human Score (사람들의 실제 반응 점수) 안내</h3>
+                  <button onClick={() => setIsHumanScoreModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer' }}>✕</button>
+                </div>
+                
+                <div style={{ fontSize: '0.9rem', color: '#334155', lineHeight: '1.75' }}>
+                  <p style={{ marginBottom: '12px' }}>
+                    <strong>Human Score</strong>는 검색엔진 광고나 SEO 기법에 왜곡되지 않은 <strong>실제 사람들의 관심도와 댓글 참여도</strong>를 측정한 점수입니다.
+                  </p>
+                  <ul style={{ paddingLeft: '20px', display: 'grid', gap: '8px' }}>
+                    <li><strong>HackerNews</strong>: Upvotes × 2 + Comments × 3</li>
+                    <li><strong>Reddit</strong>: Score (Upvotes - Downvotes) + Comments × 2</li>
+                    <li><strong>GitHub</strong>: Stars + Forks × 3</li>
+                    <li><strong>Bluesky / Dev.to / StackOverflow</strong>: Likes/Reactions × 2 + Comments/Answers × 4</li>
+                    <li><strong>Google News / alphaXiv</strong>: 언론사 신뢰도 & 대중 인기도 종합 점수</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Doctor Modal */}
+          {isDoctorOpen && (
+            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+              <div className="glass-panel" style={{ background: '#ffffff', maxWidth: '650px', width: '100%', padding: '32px', borderRadius: 'var(--radius-lg)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: '800', color: '#0f172a' }}>🩺 System Health & Patch Notes</h3>
+                  <button onClick={() => setIsDoctorOpen(false)} style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer' }}>✕</button>
+                </div>
+
+                <pre style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', fontSize: '0.82rem', fontFamily: 'JetBrains Mono, monospace', color: '#334155', overflowX: 'auto', marginBottom: '20px' }}>
+                  {JSON.stringify(doctorStatus, null, 2)}
+                </pre>
+
+                <div style={{ textAlign: 'right' }}>
+                  <button onClick={() => setIsDoctorOpen(false)} className="btn-primary" style={{ padding: '8px 20px', fontSize: '0.88rem' }}>닫기</button>
                 </div>
               </div>
             </div>
@@ -1404,41 +1537,6 @@
         </div>
       );
     }
-
-    window.addEventListener('DOMContentLoaded', () => {
-      const canvas = document.getElementById('wave-canvas');
-      if (!canvas) return;
-      const ctx = canvas.getContext('2d');
-      let width = canvas.width = window.innerWidth;
-      let height = canvas.height = window.innerHeight;
-
-      window.addEventListener('resize', () => {
-        width = canvas.width = window.innerWidth;
-        height = canvas.height = window.innerHeight;
-      });
-
-      let step = 0;
-      function animate() {
-        ctx.clearRect(0, 0, width, height);
-        step += 0.015;
-
-        for (let i = 0; i < 3; i++) {
-          ctx.beginPath();
-          ctx.lineWidth = 2 + i;
-          ctx.strokeStyle = i === 0 ? 'rgba(147, 51, 234, 0.15)' : (i === 1 ? 'rgba(37, 99, 235, 0.18)' : 'rgba(6, 182, 212, 0.12)');
-
-          for (let x = 0; x < width; x += 10) {
-            const y = Math.sin(x * 0.003 + step + i * 1.5) * (40 + i * 20) + (height * 0.4 + i * 80);
-            if (x === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
-          }
-          ctx.stroke();
-        }
-
-        requestAnimationFrame(animate);
-      }
-      animate();
-    });
 
     ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   </script>

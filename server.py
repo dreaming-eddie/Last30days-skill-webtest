@@ -106,10 +106,15 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
             },
             "sources": [
                 {"name": "alphaXiv", "type": "MCP Tools (discover_papers, get_paper_content, answer_pdf_queries)", "status": "Active"},
-                {"name": "Google News", "type": "RSS2JSON + Multi-Publisher Clustering", "status": "Active"},
+                {"name": "Google News", "type": "RSS2JSON + Multi-Publisher Clustering & Ad Filter", "status": "Active"},
                 {"name": "HackerNews", "type": "Algolia Realtime API", "status": "Active"},
                 {"name": "Reddit", "type": "Public JSON / RSS Engine", "status": "Active"},
-                {"name": "GitHub", "type": "GitHub REST API (Stars 2-Tier Sort)", "status": "Active"}
+                {"name": "GitHub", "type": "GitHub REST API (Stars 2-Tier Sort)", "status": "Active"},
+                {"name": "Bluesky", "type": "Public XRPCSearch Posts API", "status": "Active"},
+                {"name": "YouTube", "type": "Public Video Feed & Deep-Dive Transcripts", "status": "Active"},
+                {"name": "Dev.to", "type": "Developer Technical Articles API", "status": "Active"},
+                {"name": "StackOverflow", "type": "Technical Q&A API", "status": "Active"},
+                {"name": "Wikipedia", "type": "KR & EN Encyclopedia Search API", "status": "Active"}
             ]
         }
         self.send_json(response_data)
