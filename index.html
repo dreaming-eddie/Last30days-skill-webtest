@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>last30days · 실시간 소셜 & 학술 논문 딥 리서치</title>
+  <title>last30days · 구글뉴스 매체 클러스터링 & Human Score 안내</title>
   <meta name="description" content="What's happened in the last 30 days? Real human opinions from Reddit, HackerNews, YouTube, X, GitHub, Polymarket, alphaXiv - Scored by the People." />
 
   <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
@@ -311,7 +311,72 @@
       return 0.40;
     }
 
-    // Helper: Convert Research Data to Clean GitHub Flavored Markdown Document
+    // Google News Multi-Publisher Story Clustering Engine
+    function clusterGoogleNewsFindings(findings) {
+      const gnewsItems = findings.filter(f => f.source === 'googlenews');
+      const otherItems = findings.filter(f => f.source !== 'googlenews');
+
+      if (gnewsItems.length === 0) return findings;
+
+      const clusters = [];
+
+      gnewsItems.forEach(item => {
+        let targetCluster = null;
+        const normTitle = (item.title || '').toLowerCase().replace(/[^\w가-힣\s]/g, '');
+        const tokens = normTitle.split(/\s+/).filter(t => t.length > 1);
+
+        for (const cluster of clusters) {
+          const repTitle = (cluster.primary.title || '').toLowerCase().replace(/[^\w가-힣\s]/g, '');
+          const repTokens = repTitle.split(/\s+/).filter(t => t.length > 1);
+
+          const commonTokens = tokens.filter(t => repTokens.includes(t));
+          const minLen = Math.min(tokens.length, repTokens.length);
+
+          if (commonTokens.length >= 2 && (commonTokens.length / minLen) >= 0.4) {
+            targetCluster = cluster;
+            break;
+          }
+        }
+
+        const pubName = item.engagement?.publisher || '언론사';
+
+        if (targetCluster) {
+          targetCluster.related.push(item);
+          if (!targetCluster.publishers.includes(pubName)) {
+            targetCluster.publishers.push(pubName);
+          }
+        } else {
+          clusters.push({
+            primary: item,
+            related: [item],
+            publishers: [pubName]
+          });
+        }
+      });
+
+      const clusteredGnews = clusters.map(c => {
+        const count = c.publishers.length;
+        const primary = c.primary;
+
+        if (count > 1) {
+          return {
+            ...primary,
+            is_clustered: true,
+            cluster_count: count,
+            publishers_list: c.publishers,
+            related_articles: c.related,
+            engagement: {
+              ...primary.engagement,
+              publisher: `${c.publishers[0]} 외 ${count - 1}개 매체`
+            }
+          };
+        }
+        return primary;
+      });
+
+      return [...clusteredGnews, ...otherItems];
+    }
+
     function generateMarkdownReport(data) {
       if (!data || !data.findings) return '# 리서치 데이터가 없습니다.';
 
@@ -348,6 +413,7 @@
         md += `### ${idx + 1}. [${item.source ? item.source.toUpperCase() : 'WEB'}] ${item.title.replace(/^📄\s*\[Paper\]\s*/, '')}\n\n`;
         md += `- **URL**: [${item.url}](${item.url})\n`;
         md += `- **작성일**: ${pubDate} | **키워드 적합도**: ${matchPct}% | **Human Score**: ${score.toLocaleString()}\n`;
+        if (item.is_clustered) md += `- **보도 출처**: ${item.publishers_list.join(', ')} (총 ${item.cluster_count}개 매체 보도)\n`;
         if (item.authors) md += `- **저자진**: ${item.authors}\n`;
         md += `\n**요약 / 초록 (Summary)**:\n> ${item.summary ? item.summary.replace(/\n/g, ' ') : '내용 없음'}\n\n`;
         md += `---\n\n`;
@@ -357,7 +423,6 @@
       return md;
     }
 
-    // Direct Live Client-Side Fetcher
     async function fetchLiveClientResearch(queryTopic, searchDays = 30, searchDepth = 'quick') {
       const qObj = processMixedLanguageQuery(queryTopic);
 
@@ -440,7 +505,7 @@
                 summary: item.description ? item.description.replace(/<[^>]*>/g, '').slice(0, 220) + '...' : `Google News 한국 속보 (${publisher})`,
                 published_at: item.pubDate ? item.pubDate.split(' ')[0] : new Date().toISOString().split('T')[0],
                 published_timestamp: item.pubDate ? new Date(item.pubDate).getTime() : nowMs,
-                engagement: { publisher: `${publisher} (국내)`, points: 420, score_by_people: 920 }
+                engagement: { publisher: publisher, points: 420, score_by_people: 920 }
               });
             }
           });
@@ -551,16 +616,19 @@
         relevance_score: calculateBilingualRelevance(qObj, item.title, item.summary)
       }));
 
+      // Apply Google News Multi-Publisher Story Clustering
+      const finalClusteredFindings = clusterGoogleNewsFindings(scoredFindings);
+
       return {
         query_topic: queryTopic,
         bilingual_queries: qObj,
         window_days: Number(searchDays),
         cutoff_date: new Date(cutoffMs).toISOString().split('T')[0],
         research_depth: searchDepth,
-        schema_version: "1.4",
+        schema_version: "1.5",
         as_of_date: new Date().toISOString().split('T')[0],
         source_status: sourceStatus,
-        findings: scoredFindings
+        findings: finalClusteredFindings
       };
     }
 
@@ -621,8 +689,12 @@
 
       const [isDoctorOpen, setIsDoctorOpen] = useState(false);
       const [isExportOpen, setIsExportOpen] = useState(false);
+      const [isHumanScoreModalOpen, setIsHumanScoreModalOpen] = useState(false);
       const [doctorStatus, setDoctorStatus] = useState(null);
       const [copySuccess, setCopySuccess] = useState(false);
+
+      // Expanded State for Google News Clustered Articles Accordion
+      const [expandedClusters, setExpandedClusters] = useState({});
 
       // Modal State for `get_paper_content` and `answer_pdf_queries` MCP Tools
       const [activePaperModal, setActivePaperModal] = useState(null);
@@ -642,12 +714,12 @@
           .then(data => setDoctorStatus(data))
           .catch(() => setDoctorStatus({
             status: 'ok',
-            version: 'v1.4',
+            version: 'v1.5',
             features: [
+              'Google News Multi-Publisher Story Clustering',
+              'Human Score Info Modal & Tooltip',
               'alphaXiv MCP Tools (discover_papers, get_paper_content, answer_pdf_queries)',
               'GitHub 2-Tier Sorting (1st Relevance, 2nd Stars Descending)',
-              'Bilingual Multi-Branch Query Router',
-              'Strict Lookback Window Timestamp Cutoff',
               'Markdown (.md) Report Exporter'
             ]
           }));
@@ -701,6 +773,10 @@
           setError('실시간 리서치 데이터를 불러오는데 실패했습니다.');
           setIsLoading(false);
         }
+      };
+
+      const toggleClusterAccordion = (idx) => {
+        setExpandedClusters(prev => ({ ...prev, [idx]: !prev[idx] }));
       };
 
       const handleDownloadMarkdown = () => {
@@ -813,6 +889,9 @@
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <button onClick={() => setIsHumanScoreModalOpen(true)} className="btn-secondary" style={{ fontSize: '0.86rem', padding: '10px 16px', borderColor: '#bfdbfe', color: '#2563eb' }}>
+                  <span>ℹ️ Human Score 안내</span>
+                </button>
                 <button onClick={() => setIsDoctorOpen(true)} className="btn-secondary" style={{ fontSize: '0.86rem', padding: '10px 16px' }}>
                   <span>🩺 System Health</span>
                   <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' }}></span>
@@ -1043,14 +1122,28 @@
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                           <span className={getBadgeClass(item.source)}>{item.source || 'web'}</span>
+                          
+                          {/* Google News Multi-Publisher Cluster Badge */}
+                          {item.is_clustered && (
+                            <span style={{ fontSize: '0.78rem', fontWeight: '800', color: '#16a34a', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '3px 10px', borderRadius: '12px' }}>
+                              📰 {item.engagement?.publisher} 종합 보도
+                            </span>
+                          )}
+
                           {eng.stars ? (
                             <span style={{ fontSize: '0.78rem', fontWeight: '800', color: '#ca8a04', background: '#fefce8', border: '1px solid #fef08a', padding: '3px 10px', borderRadius: '12px' }}>
                               ⭐ Stars {eng.stars.toLocaleString()}개
                             </span>
                           ) : humanScore > 0 ? (
-                            <span style={{ fontSize: '0.78rem', fontWeight: '800', color: '#2563eb', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '3px 10px', borderRadius: '12px' }}>
-                              👍 Human Score: {humanScore.toLocaleString()}
-                            </span>
+                            <button
+                              onClick={() => setIsHumanScoreModalOpen(true)}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                              title="Human Score 설명 보기"
+                            >
+                              <span style={{ fontSize: '0.78rem', fontWeight: '800', color: '#2563eb', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '3px 10px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                👍 Human Score: {humanScore.toLocaleString()} <span style={{ fontSize: '0.7rem', opacity: 0.8 }}>ℹ️</span>
+                              </span>
+                            </button>
                           ) : null}
                         </div>
                         
@@ -1080,6 +1173,36 @@
                         <p style={{ fontSize: '0.92rem', color: 'var(--text-muted)', marginBottom: '18px', lineHeight: '1.65' }}>
                           {item.summary}
                         </p>
+                      )}
+
+                      {/* Google News Multi-Publisher Cluster Accordion */}
+                      {item.is_clustered && item.related_articles && (
+                        <div style={{ marginBottom: '18px', background: '#f8fafc', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.84rem', fontWeight: '800', color: '#15803d' }}>
+                              📰 동일 이슈 언급 매체 ({item.cluster_count}개 출처): {item.publishers_list.join(', ')}
+                            </span>
+                            <button
+                              onClick={() => toggleClusterAccordion(idx)}
+                              style={{ background: '#ffffff', border: '1px solid #cbd5e1', padding: '4px 10px', borderRadius: '6px', fontSize: '0.78rem', fontWeight: '700', cursor: 'pointer', color: '#334155' }}
+                            >
+                              {expandedClusters[idx] ? '▲ 출처 목록 접기' : '▼ 복수 매체 기사 보기'}
+                            </button>
+                          </div>
+
+                          {expandedClusters[idx] && (
+                            <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              {item.related_articles.map((rel, rIdx) => (
+                                <div key={rIdx} style={{ fontSize: '0.82rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <a href={rel.url} target="_blank" style={{ color: '#0f172a', textDecoration: 'none', fontWeight: '600', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    • [{rel.engagement?.publisher || '뉴스'}] {rel.title}
+                                  </a>
+                                  <span style={{ color: '#64748b', marginLeft: '12px', fontSize: '0.76rem', whiteSpace: 'nowrap' }}>{rel.published_at}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       )}
 
                       {/* alphaXiv MCP Tools */}
@@ -1117,6 +1240,40 @@
                     </div>
                   );
                 })}
+              </div>
+            </div>
+          )}
+
+          {/* Human Score Explanation Modal */}
+          {isHumanScoreModalOpen && (
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100 }}>
+              <div className="glass-panel" style={{ width: '90%', maxWidth: '620px', padding: '32px', background: '#ffffff', borderRadius: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span>👍 Human Score (사람의 관심도 점수) 안내</span>
+                  </h3>
+                  <button onClick={() => setIsHumanScoreModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#64748b' }}>✕</button>
+                </div>
+
+                <div style={{ background: '#eff6ff', padding: '20px', borderRadius: '14px', border: '1px solid #bfdbfe', marginBottom: '20px', fontSize: '0.92rem', color: '#1e40af', lineHeight: '1.7' }}>
+                  <strong>Human Score</strong>는 검색 알고리즘이나 광고가 만든 순위가 아니라, <strong>실제 대중(Human)이 매긴 실제 관심도 및 참여도 정량 지표</strong>입니다.
+                </div>
+
+                <h4 style={{ fontSize: '0.95rem', fontWeight: '800', color: '#0f172a', marginBottom: '10px' }}>플랫폼별 Human Score 산출 기준:</h4>
+                <ul style={{ fontSize: '0.88rem', color: '#334155', lineHeight: '1.8', paddingLeft: '20px', marginBottom: '20px' }}>
+                  <li><strong>Reddit</strong>: `Post Upvote 점수 + (댓글 수 × 2)`</li>
+                  <li><strong>HackerNews</strong>: `Upvote Points × 2 + (댓글 수 × 3)`</li>
+                  <li><strong>GitHub</strong>: `Repository Stars + (Forks × 3)`</li>
+                  <li><strong>Google News / alphaXiv</strong>: 언론사 신뢰도 & 대중 인기도 종합 점수</li>
+                </ul>
+
+                <p style={{ fontSize: '0.84rem', color: '#64748b' }}>
+                  💡 <strong>Scored by the People</strong>: 구글 검색엔진이 상단에 숨기는 사람들의 진짜 미화되지 않은 의견과 관심도를 파악할 수 있도록 돕습니다.
+                </p>
+
+                <div style={{ marginTop: '24px', textAlign: 'right' }}>
+                  <button onClick={() => setIsHumanScoreModalOpen(false)} className="btn-primary" style={{ padding: '10px 24px' }}>확인</button>
+                </div>
               </div>
             </div>
           )}

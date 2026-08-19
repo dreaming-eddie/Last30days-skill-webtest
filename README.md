@@ -5,39 +5,27 @@
 
 ---
 
-## 🌟 alphaXiv 공식 MCP 3대 툴 연동 (Official MCP Research Tools)
+## 🌟 주요 신규 기능 (New Features)
 
-사이트에서 공식 제공하는 3가지 alphaXiv MCP 연구 툴이 웹 앱 조회 결과에 직접 통합되어 작동합니다:
+### 1. 📰 구글 뉴스 동일 이슈 복수 매체 종합 보도 클러스터링 (Google News Story Clustering)
+- **동일 이슈 뉴스 그룹화**: 동일한 사건이나 기사를 여러 언론사(조선일보, 연합뉴스, 매일경제 등)에서 보도한 경우, 개별 기사로 나열하지 않고 **"📰 조선일보 외 3개 매체에서 함께 보도 (총 4개 출처)"** 형태의 단일 대표 카드로 자동 종합합니다.
+- **아코디언 확장 목록**: 카드 내 **`▼ 복수 매체 기사 보기`** 버튼을 누르면 관련된 모든 언론사의 기사 제목과 직접 링크를 한눈에 펼쳐볼 수 있습니다.
 
-### 1. 🔍 `discover_papers`
-- **역할**: 입력한 검색 주제에 맞는 후보 논문들을 자동 발굴 및 순위화.
-- **파라미터 연동**:
-  - `keywords`: 3~4개의 정제된 핵심 키워드 배열.
-  - `question`: 논문의 시맨틱 상세 설명.
-  - `difficulty`: 1~10 탐색 난이도 (Quick = Level 3, Deep = Level 7).
-  - `published_after`: 선택한 조사 기간(Lookback Days) 날짜 경계선(`YYYY-MM-DD`).
+### 2. 💡 Human Score (사람의 관심도 점수) 산출 기준 & 안내
+- **개념**: 검색엔진 광고나 알고리즘 추천 순위가 아닌, **실제 대중(Human)이 매긴 관심도 및 참여도 정량 지표**입니다.
+- **플랫폼별 산출공식**:
+  - **Reddit**: `Upvote 점수 + (댓글 수 × 2)`
+  - **HackerNews**: `Upvote Points × 2 + (댓글 수 × 3)`
+  - **GitHub**: `Stars + (Forks × 3)`
+- **UI 안내**: 상단 헤더의 **`ℹ️ Human Score 안내`** 버튼 및 각 카드 뱃지를 클릭하면 산출 기준 안내 모달 창이 표시됩니다.
 
-### 2. 📄 `get_paper_content`
-- **역할**: 수집된 alphaXiv/arXiv 논문의 AI 생성 본문 리포트 및 초록 추출.
-- **UI 기능**: 각 논문 카드마다 **`[get_paper_content] 본문 수집 & 요약 리포트`** 버튼이 제공되어, 모달 창에서 논문 주요 내용을 즉시 열람할 수 있습니다.
+### 3. 📄 alphaXiv 공식 MCP 3대 툴 연동 (`discover_papers`, `get_paper_content`, `answer_pdf_queries`)
+- **`discover_papers`**: 검색 키워드 및 조사 기간(`published_after`) 연동 논문 자동 발굴.
+- **`get_paper_content`**: 각 논문 카드의 **`[get_paper_content]`** 버튼으로 AI 요약 리포트 열람.
+- **`answer_pdf_queries`**: 각 논문 카드의 **`[answer_pdf_queries]`** 버튼으로 PDF 페이지 레벨 질의응답 (Q&A) 수행.
 
-### 3. ❓ `answer_pdf_queries`
-- **역할**: 특정 논문(PDF)에 대해 궁금한 질문(Benchmark, 한계점, 방법론 등)에 대해 페이지 레벨 질의응답을 수행.
-- **UI 기능**: 각 논문 카드의 **`[answer_pdf_queries] PDF 질의응답 (Q&A)`** 버튼을 눌러 모달 창에서 질문을 입력하고 AI 기반 응답을 받을 수 있습니다.
-
----
-
-## 🌟 주요 핵심 정렬 및 라우터 엔진 (Engine & Rules)
-
-### 1. 🐙 GitHub 2단계 다중 정렬 규칙 (GitHub 2-Tier Sorting Rule)
-- **1순위**: **키워드 적합도 (Keyword Relevance Score)** 높은 순 정렬.
-- **2순위**: 적합도가 비슷한 항목 중 **스타 수(Stars Count) 내림차순** 정렬 (`sort=stars&order=desc` API 적용).
-
-### 2. 🌐 한영 분동 지능형 라우터 (Bilingual Multi-Branch Query Router)
-- **한영 혼용 키워드 분동 조회**: `"Nvidia 실적"`, `"클로드 3.7"`처럼 한글이 포함된 검색어 입력 시, 한글 키워드와 영문 핵심어(`"Nvidia"`, `"Nvidia earnings"`)를 자동 분리 처리합니다.
-
-### 3. 📅 엄격한 조사 기간 차단 엔진 (Strict Lookback Window Cutoff)
-- 사용자가 선택한 **Lookback Days (7일, 14일, 30일, 90일)** 기준 타임스탬프(`cutoffMs`)보다 오래된 과거 데이터는 수집 즉시 **100% 자동 폐기(Discard)**됩니다.
+### 4. 📥 마크다운 (.md) 리서치 보고서 내보내기
+- 수집된 모든 결과 데이터를 깔끔한 **GitHub Flavored Markdown 문서**로 클립보드 복사 및 `.md` 파일 다운로드 지원.
 
 ---
 
@@ -71,9 +59,9 @@ git push origin main
 
 ```text
 E:\Antigravity Playground\Github\Last30days-skill Website Test\
-├── index.html                # React 단일 페이지 & alphaXiv MCP 3대 툴 (discover, content, pdf_qa) 연동
+├── index.html                # React 단일 페이지 & 구글뉴스 클러스터링 & Human Score 안내 & alphaXiv MCP
 ├── mcp_config.json           # https://api.alphaxiv.org/mcp/v1 서버 등록 파일
 ├── server.py                 # Python HTTP 백엔드
-├── README.md                 # 프로젝트 문서 및 MCP 툴 설명서
+├── README.md                 # 프로젝트 문서 및 기능 설명서
 └── package.json              # 프로젝트 설정 파일
 ```
