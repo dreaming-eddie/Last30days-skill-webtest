@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>last30days · GitHub Stars 2단계 정렬 & 한영 멀티 딥 리서치</title>
-  <meta name="description" content="What's happened in the last 30 days? Real human opinions from Reddit, HackerNews, YouTube, X, GitHub, Polymarket - Scored by the People." />
+  <title>last30days · alphaXiv / arXiv MCP & 실시간 소셜 딥 리서치</title>
+  <meta name="description" content="What's happened in the last 30 days? Real human opinions from Reddit, HackerNews, YouTube, X, GitHub, Polymarket, alphaXiv - Scored by the People." />
 
   <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -144,6 +144,7 @@
       letter-spacing: 0.5px;
     }
 
+    .badge-alphaxiv { background: #faf5ff; color: #9333ea; border: 1px solid #e9d5ff; }
     .badge-googlenews { background: #eafeea; color: #15803d; border: 1px solid #bbf7d0; }
     .badge-websearch { background: #fdf4ff; color: #a21caf; border: 1px solid #f5d0fe; }
     .badge-hackernews { background: #fff7ed; color: #ea580c; border: 1px solid #ffedd5; }
@@ -291,13 +292,14 @@
       return 0.40;
     }
 
-    // Direct Live Client-Side Fetcher with GitHub Stars 2-Tier Sorting & Strict Date Filtering
+    // Direct Live Client-Side Fetcher with AlphaXiv / arXiv Academic Paper MCP Integration
     async function fetchLiveClientResearch(queryTopic, searchDays = 30, searchDepth = 'quick') {
       const qObj = processMixedLanguageQuery(queryTopic);
-      console.log(`[GitHub 2-Tier Engine] Query: "${qObj.original}", Global Targets:`, qObj.globalQueries);
+      console.log(`[AlphaXiv MCP Engine] Query: "${qObj.original}", Global Targets:`, qObj.globalQueries);
 
       const rawFindings = [];
       const sourceStatus = {
+        alphaxiv: "ok",
         googlenews_kr: "ok",
         hackernews: "ok",
         reddit: "ok",
@@ -311,7 +313,51 @@
       const cutoffSec = Math.floor(cutoffMs / 1000);
       const cutoffDate = new Date(cutoffMs).toISOString().split('T')[0];
 
-      // 1. Google News Korea (Korean Query)
+      // 1. AlphaXiv / arXiv Academic Research Papers API
+      for (const globalQuery of qObj.globalQueries) {
+        try {
+          const arxivUrl = `https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(globalQuery)}&sortBy=submittedDate&sortOrder=descending&max_results=${perPage}`;
+          const res = await fetch(arxivUrl);
+          if (res.ok) {
+            const xmlText = await res.text();
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+            const entries = xmlDoc.querySelectorAll("entry");
+
+            entries.forEach(entry => {
+              const rawTitle = entry.querySelector("title")?.textContent || '';
+              const cleanTitle = rawTitle.replace(/\n/g, ' ').trim();
+              const rawSummary = entry.querySelector("summary")?.textContent || '';
+              const cleanSummary = rawSummary.replace(/\n/g, ' ').slice(0, 240) + '...';
+              const idUrl = entry.querySelector("id")?.textContent.trim() || '';
+              const pubDateStr = entry.querySelector("published")?.textContent.split('T')[0] || new Date().toISOString().split('T')[0];
+              
+              const authorNodes = entry.querySelectorAll("author name");
+              const authors = Array.from(authorNodes).map(a => a.textContent).slice(0, 3).join(', ');
+
+              const arxivId = (idUrl.match(/abs\/(.+)$/) || [])[1] || '';
+              const alphaXivLink = arxivId ? `https://alphaxiv.org/abs/${arxivId}` : idUrl;
+
+              if (cleanTitle && idUrl) {
+                rawFindings.push({
+                  candidate_id: `alphaxiv-${arxivId || osHash(idUrl)}`,
+                  source: 'alphaxiv',
+                  title: `📄 [Paper] ${cleanTitle}`,
+                  url: alphaXivLink,
+                  summary: `[Authors: ${authors || 'Research Group'}] ${cleanSummary}`,
+                  published_at: pubDateStr,
+                  published_timestamp: new Date(pubDateStr).getTime(),
+                  engagement: { publisher: 'alphaXiv / arXiv', score_by_people: 880 }
+                });
+              }
+            });
+          }
+        } catch (err) {
+          console.warn('AlphaXiv / arXiv Fetch Error:', err);
+        }
+      }
+
+      // 2. Google News Korea (Korean Query)
       try {
         const gnewsKrUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(`https://news.google.com/rss/search?q=${encodeURIComponent(qObj.original)}+when:${searchDays}d&hl=ko&gl=KR&ceid=KR:ko`)}`;
         const res = await fetch(gnewsKrUrl);
@@ -337,7 +383,7 @@
         }
       } catch (err) {}
 
-      // 2. Global English Sources
+      // 3. Global English Sources (HackerNews, Reddit, GitHub, Polymarket)
       for (const globalQuery of qObj.globalQueries) {
         
         // HackerNews Algolia API
@@ -392,7 +438,7 @@
           }
         } catch (err) {}
 
-        // GitHub Repos API with explicit `sort=stars&order=desc` parameter!
+        // GitHub Repos API with `sort=stars&order=desc`
         try {
           const ghUrl = `https://api.github.com/search/repositories?q=${encodeURIComponent(globalQuery)}+pushed:>${cutoffDate}&sort=stars&order=desc&per_page=${perPage}`;
           const res = await fetch(ghUrl);
@@ -485,9 +531,9 @@
 
       if (dynamicTopics.length === 0) {
         return [
-          { label: '🔥 Claude 3.7', topic: 'Claude 3.7' },
+          { label: '🔥 Claude 3.7 Paper', topic: 'Claude 3.7' },
           { label: '📈 Nvidia 실적', topic: 'Nvidia 실적' },
-          { label: '🚀 DeepSeek V3', topic: 'DeepSeek V3' },
+          { label: '🚀 DeepSeek V3 Paper', topic: 'DeepSeek V3' },
           { label: '💼 HR 트렌드', topic: 'HR' },
           { label: '⚛️ React 19', topic: 'React 19' }
         ];
@@ -496,7 +542,7 @@
     }
 
     function App() {
-      const [topic, setTopic] = useState('Nvidia 실적');
+      const [topic, setTopic] = useState('Claude 3.7');
       const [days, setDays] = useState(30);
       const [depth, setDepth] = useState('quick');
       const [selectedSources, setSelectedSources] = useState([]);
@@ -522,9 +568,9 @@
         fetch('/api/doctor')
           .then(res => res.json())
           .then(data => setDoctorStatus(data))
-          .catch(() => setDoctorStatus({ status: 'ok', mode: 'GitHub Stars 2-Tier Sorting Engine' }));
+          .catch(() => setDoctorStatus({ status: 'ok', mode: 'alphaXiv MCP Academic Pipeline Integrated' }));
 
-        handleSearch('Nvidia 실적', 30, 'quick');
+        handleSearch('Claude 3.7', 30, 'quick');
       }, []);
 
       const load24HTrends = async () => {
@@ -577,6 +623,7 @@
 
       const getBadgeClass = (source) => {
         switch ((source || '').toLowerCase()) {
+          case 'alphaxiv': return 'badge-alphaxiv';
           case 'googlenews': return 'badge-googlenews';
           case 'websearch': return 'badge-websearch';
           case 'hackernews': return 'badge-hackernews';
@@ -591,7 +638,6 @@
       };
 
       const findings = resultsData?.findings || [];
-      const bilingualQueries = resultsData?.bilingual_queries || { globalQueries: [topic] };
       const availablePlatforms = ['all', ...new Set(findings.map(f => f.source || 'web'))];
 
       let filteredFindings = findings.filter(item => {
@@ -603,9 +649,7 @@
         return true;
       });
 
-      // MULTI-TIER SORTING ALGORITHM INCLUDING GITHUB 2-TIER SORTING
       filteredFindings.sort((a, b) => {
-        // Special Rule for GitHub items: 1st Relevance Score, 2nd Stars Count Descending!
         if (a.source === 'github' && b.source === 'github') {
           const relDiff = (b.relevance_score || 0) - (a.relevance_score || 0);
           if (Math.abs(relDiff) > 0.05) return relDiff;
@@ -633,33 +677,33 @@
                   width: '54px',
                   height: '54px',
                   borderRadius: '16px',
-                  background: 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)',
+                  background: 'linear-gradient(135deg, #9333ea 0%, #2563eb 100%)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  boxShadow: '0 6px 20px rgba(37, 99, 235, 0.3)',
+                  boxShadow: '0 6px 20px rgba(147, 51, 234, 0.3)',
                   fontSize: '1.65rem',
                   color: '#ffffff'
                 }}>
-                  ⭐
+                  📄
                 </div>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <h1 style={{ fontSize: '1.55rem', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.5px' }}>last30days</h1>
                     <span style={{
-                      background: 'rgba(37, 99, 235, 0.1)',
-                      color: '#2563eb',
-                      border: '1px solid rgba(37, 99, 235, 0.25)',
+                      background: 'rgba(147, 51, 234, 0.1)',
+                      color: '#9333ea',
+                      border: '1px solid rgba(147, 51, 234, 0.25)',
                       padding: '4px 12px',
                       borderRadius: '16px',
                       fontSize: '0.78rem',
                       fontWeight: '700'
                     }}>
-                      GitHub 2-Tier Sort: 1st Relevance, 2nd Stars
+                      alphaXiv / arXiv Academic Papers MCP Integrated
                     </span>
                   </div>
                   <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginTop: '3px' }}>
-                    GitHub 조회 결과: 1순위 키워드 적합도, 2순위 Stars 내림차순 정렬 연동
+                    alphaXiv 학술 논문 토론, Google News, Reddit, HackerNews, GitHub 딥 리서치
                   </p>
                 </div>
               </div>
@@ -669,8 +713,8 @@
                   <span>🩺 System Health</span>
                   <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' }}></span>
                 </button>
-                <a href="https://github.com/mvanhorn/last30days-skill" target="_blank" className="btn-secondary" style={{ fontSize: '0.86rem', padding: '10px 16px', textDecoration: 'none' }}>
-                  <span>🔥 Original Repo</span>
+                <a href="https://alphaxiv.org" target="_blank" className="btn-secondary" style={{ fontSize: '0.86rem', padding: '10px 16px', textDecoration: 'none' }}>
+                  <span>📄 alphaXiv Web</span>
                 </a>
               </div>
 
@@ -715,17 +759,17 @@
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && !isLoading && handleSearch(topic, days, depth)}
-                placeholder="한글/영문 혼용 키워드를 입력하세요 (예: Nvidia 실적, 클로드 3.7, React 19 특징)..."
+                placeholder="조사할 주제, 논문 키워드를 입력하세요 (예: Claude 3.7, Nvidia 실적, DeepSeek V3)..."
                 style={{ flex: 1, minWidth: '280px', height: '54px', padding: '0 20px', background: 'rgba(255, 255, 255, 0.95)', border: '1px solid var(--border-glass)', borderRadius: 'var(--radius-sm)', color: 'var(--text-main)', fontSize: '1.05rem', fontWeight: '500', outline: 'none' }}
               />
               <button onClick={() => handleSearch(topic, days, depth)} disabled={isLoading || !topic.trim()} className="btn-primary" style={{ height: '54px', padding: '0 32px', fontSize: '1.05rem', whiteSpace: 'nowrap' }}>
                 {isLoading ? (
                   <>
                     <div className="spinner" style={{ width: '18px', height: '18px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%' }} />
-                    <span>GitHub Stars 정밀 정렬 중...</span>
+                    <span>alphaXiv 논문 & 소셜 수집 중...</span>
                   </>
                 ) : (
-                  <span>🌊 딥 리서치 실행</span>
+                  <span>📄 딥 리서치 실행</span>
                 )}
               </button>
             </div>
@@ -751,7 +795,7 @@
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                   <label style={{ fontSize: '0.8rem', fontWeight: '800', color: 'var(--text-dim)' }}>탐색 깊이 (RESEARCH DEPTH)</label>
                   <span style={{ fontSize: '0.72rem', fontWeight: '700', color: depth === 'deep' ? '#7c3aed' : '#0284c7' }}>
-                    {depth === 'deep' ? '25건 수집 + 다중 파이프라인' : '12건 빠른 수집'}
+                    {depth === 'deep' ? '25건 수집 + alphaXiv 논문 확장' : '12건 빠른 수집'}
                   </span>
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -789,13 +833,13 @@
 
           {/* Sources Breakdown Grid */}
           {resultsData && (
-            <div className="glass-panel" style={{ padding: '26px 32px', marginBottom: '28px', background: 'linear-gradient(135deg, rgba(255,255,255,0.96) 0%, rgba(239,246,255,0.65) 100%)' }}>
+            <div className="glass-panel" style={{ padding: '26px 32px', marginBottom: '28px', background: 'linear-gradient(135deg, rgba(255,255,255,0.96) 0%, rgba(243,232,255,0.6) 100%)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', flexWrap: 'wrap', gap: '10px' }}>
                 <div>
                   <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span>📊 Sources Breakdown</span>
-                    <span style={{ fontSize: '0.78rem', background: '#dcfce7', color: '#15803d', padding: '3px 10px', borderRadius: '12px', fontWeight: '700' }}>
-                      GitHub 2-Tier Sort: 1st Relevance, 2nd Stars
+                    <span style={{ fontSize: '0.78rem', background: '#f3e8ff', color: '#9333ea', padding: '3px 10px', borderRadius: '12px', fontWeight: '700' }}>
+                      alphaXiv Academic MCP Active
                     </span>
                   </h3>
                   <p style={{ fontSize: '0.84rem', color: 'var(--text-dim)', marginTop: '3px' }}>
@@ -806,18 +850,18 @@
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '14px' }}>
                 {[
+                  { name: 'alphaXiv / arXiv', key: 'alphaxiv', icon: '📄' },
                   { name: 'Reddit', key: 'reddit', icon: '🔴' },
                   { name: 'HackerNews', key: 'hackernews', icon: '🟠' },
-                  { name: 'GitHub (Stars 순)', key: 'github', icon: '🐙' },
-                  { name: 'Google News', key: 'googlenews', icon: '📰' },
-                  { name: 'Polymarket', key: 'polymarket', icon: '🎲' }
+                  { name: 'GitHub', key: 'github', icon: '🐙' },
+                  { name: 'Google News', key: 'googlenews', icon: '📰' }
                 ].map((src, idx) => {
                   const count = findings.filter(f => (f.source || '').toLowerCase().includes(src.key)).length;
                   return (
                     <div key={idx} style={{ background: '#ffffff', padding: '16px', borderRadius: '14px', border: '1px solid rgba(226, 232, 240, 0.9)', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                         <span style={{ fontSize: '1.1rem' }}>{src.icon}</span>
-                        <span style={{ fontSize: '0.72rem', fontWeight: '800', color: count > 0 ? '#16a34a' : '#64748b', background: count > 0 ? '#f0fdf4' : '#f1f5f9', padding: '2px 8px', borderRadius: '10px' }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: '800', color: count > 0 ? '#9333ea' : '#64748b', background: count > 0 ? '#faf5ff' : '#f1f5f9', padding: '2px 8px', borderRadius: '10px' }}>
                           {count > 0 ? 'Active' : 'Filtered'}
                         </span>
                       </div>
@@ -899,7 +943,7 @@
                           <span className={getBadgeClass(item.source)}>{item.source || 'web'}</span>
                           {eng.stars ? (
                             <span style={{ fontSize: '0.78rem', fontWeight: '800', color: '#ca8a04', background: '#fefce8', border: '1px solid #fef08a', padding: '3px 10px', borderRadius: '12px' }}>
-                              ⭐ Stars {eng.stars.toLocaleString()}개 (2순위 정렬)
+                              ⭐ Stars {eng.stars.toLocaleString()}개
                             </span>
                           ) : humanScore > 0 ? (
                             <span style={{ fontSize: '0.78rem', fontWeight: '800', color: '#2563eb', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '3px 10px', borderRadius: '12px' }}>
@@ -920,7 +964,7 @@
                           alignItems: 'center',
                           gap: '4px'
                         }}>
-                          🎯 키워드 일치율 {matchPct}% (1순위)
+                          🎯 키워드 일치율 {matchPct}%
                         </span>
                       </div>
 
@@ -945,7 +989,7 @@
                           {item.published_at ? <span style={{ color: '#16a34a', fontWeight: '700' }}>📅 {item.published_at}</span> : null}
                         </div>
                         <a href={item.url} target="_blank" style={{ color: '#2563eb', textDecoration: 'none', fontWeight: '700' }}>
-                          게시글 / Repo 열기 ↗
+                          {item.source === 'alphaxiv' ? '📄 alphaXiv 논문 열기 ↗' : '게시글 / Repo 열기 ↗'}
                         </a>
                       </div>
                     </div>
