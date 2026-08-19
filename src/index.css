@@ -1,0 +1,144 @@
+:root {
+  --bg-base: #f8fafc;
+  --bg-glass: rgba(255, 255, 255, 0.82);
+  --bg-glass-hover: rgba(255, 255, 255, 0.95);
+  --border-glass: rgba(203, 213, 225, 0.6);
+  --border-highlight: rgba(37, 99, 235, 0.4);
+  
+  --blue-primary: #2563eb;
+  --blue-hover: #1d4ed8;
+  --blue-glow: rgba(37, 99, 235, 0.25);
+  --blue-light: #eff6ff;
+  --blue-accent: #0284c7;
+  
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  --text-dim: #64748b;
+
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-base);
+  color: var(--text-main);
+  min-height: 100vh;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* Glassmorphism Card Style */
+.glass-panel {
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 30px -5px rgba(37, 99, 235, 0.05), 0 4px 12px rgba(0, 0, 0, 0.03);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-panel:hover {
+  border-color: rgba(148, 163, 184, 0.8);
+}
+
+.glass-panel-interactive:hover {
+  background: var(--bg-glass-hover);
+  border-color: var(--border-highlight);
+  box-shadow: 0 16px 40px -8px rgba(37, 99, 235, 0.15), 0 6px 16px rgba(0, 0, 0, 0.04);
+  transform: translateY(-3px);
+}
+
+/* Container Layout */
+.app-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 28px 20px 70px 20px;
+}
+
+/* Platform Badges */
+.badge-platform {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 11px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badge-hackernews { background: #fff7ed; color: #ea580c; border: 1px solid #ffedd5; }
+.badge-reddit { background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2; }
+.badge-youtube { background: #fff1f2; color: #e11d48; border: 1px solid #ffe4e6; }
+.badge-x, .badge-twitter { background: #f0f9ff; color: #0284c7; border: 1px solid #e0f2fe; }
+.badge-github { background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; }
+.badge-polymarket { background: #eff6ff; color: #2563eb; border: 1px solid #dbeafe; }
+.badge-tiktok { background: #ecfeff; color: #0891b2; border: 1px solid #cffafe; }
+.badge-jobs { background: #f0fdf4; color: #16a34a; border: 1px solid #dcfce7; }
+
+/* Primary Button */
+.btn-primary {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
+  font-weight: 700;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 12px 24px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 16px var(--blue-glow);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.35);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--text-main);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  padding: 10px 18px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+}
+
+.btn-secondary:hover {
+  background: #ffffff;
+  border-color: var(--blue-primary);
+  color: var(--blue-primary);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
+}
+
+/* Code & Mono */
+code, pre {
+  font-family: 'JetBrains Mono', monospace;
+}
