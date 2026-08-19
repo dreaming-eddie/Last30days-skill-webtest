@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>last30days · 실시간 딥 리서치 대시보드 (Netlify Live Ready)</title>
-  <meta name="description" content="최근 30일간 Reddit, X, HackerNews, YouTube, TikTok, Polymarket, GitHub에서 사람들이 실제로 이야기하는 최신 반응과 정보 조사" />
+  <title>last30days · 24시간 실시간 핫 트렌드 & 딥 리서치</title>
+  <meta name="description" content="최근 24시간 핫 트렌드 및 최근 30일간 Reddit, X, HackerNews, YouTube, TikTok, Polymarket, GitHub 실시간 정보 조사" />
 
   <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -203,7 +203,7 @@
   <script type="text/babel">
     const { useState, useEffect } = React;
 
-    // Direct Live Client-Side Fetcher for Netlify / Cloud Deployments
+    // Direct Live Client-Side Fetcher
     async function fetchLiveClientResearch(queryTopic, searchDays = 30) {
       console.log(`[Client Live Fetcher] Querying HackerNews, Reddit, GitHub, Polymarket for: "${queryTopic}"`);
       const findings = [];
@@ -318,6 +318,49 @@
       };
     }
 
+    // Function to dynamically fetch Real-time 24H Hot Trending Topics
+    async function fetch24HTrendingTopics() {
+      console.log('[Trending] Fetching real-time 24H hot topics from HackerNews Frontpage...');
+      const dynamicTopics = [];
+
+      try {
+        const res = await fetch('https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=12');
+        if (res.ok) {
+          const data = await res.json();
+          (data.hits || []).forEach(item => {
+            if (item.title) {
+              // Extract clean title phrase for topic search
+              let rawTitle = item.title.split(':')[0].split('–')[0].split('-')[0].trim();
+              if (rawTitle.length > 25) {
+                rawTitle = rawTitle.slice(0, 25) + '...';
+              }
+              dynamicTopics.push({
+                label: `🔥 ${rawTitle}`,
+                topic: item.title.slice(0, 40),
+                points: item.points || 0
+              });
+            }
+          });
+        }
+      } catch (err) {
+        console.warn('Failed to fetch 24H HN trends:', err);
+      }
+
+      // Default curated fallback trends if network fails
+      if (dynamicTopics.length === 0) {
+        return [
+          { label: '🔥 Claude 3.7', topic: 'Claude 3.7' },
+          { label: '🚀 DeepSeek V3', topic: 'DeepSeek V3' },
+          { label: '📈 Nvidia Earnings', topic: 'Nvidia Earnings' },
+          { label: '⚛️ React 19', topic: 'React 19' },
+          { label: '🎲 Polymarket Trends', topic: 'Polymarket' },
+          { label: '🤖 AI Agent Startups', topic: 'AI Agent Startups' }
+        ];
+      }
+
+      return dynamicTopics.slice(0, 8);
+    }
+
     function App() {
       const [topic, setTopic] = useState('Claude 3.7');
       const [days, setDays] = useState(30);
@@ -329,6 +372,9 @@
       const [isLoading, setIsLoading] = useState(false);
       const [error, setError] = useState(null);
       
+      const [hotTrends, setHotTrends] = useState([]);
+      const [isFetchingTrends, setIsFetchingTrends] = useState(false);
+
       const [isDoctorOpen, setIsDoctorOpen] = useState(false);
       const [isExportOpen, setIsExportOpen] = useState(false);
       const [doctorStatus, setDoctorStatus] = useState(null);
@@ -337,23 +383,24 @@
       const [sortBy, setSortBy] = useState('relevance');
       const [searchQuery, setSearchQuery] = useState('');
 
-      const PRESETS = [
-        { label: '🌊 Claude 3.7', topic: 'Claude 3.7' },
-        { label: '🚀 DeepSeek V3', topic: 'DeepSeek V3' },
-        { label: '📈 Nvidia Earnings', topic: 'Nvidia Earnings' },
-        { label: '⚛️ React 19', topic: 'React 19' },
-        { label: '🎲 Polymarket', topic: 'Polymarket' },
-        { label: '💼 AI Agent Startups', topic: 'AI Agent Startups' }
-      ];
-
+      // Load 24H Hot Trends dynamically on mount
       useEffect(() => {
+        load24HTrends();
+
         fetch('/api/doctor')
           .then(res => res.json())
           .then(data => setDoctorStatus(data))
-          .catch(() => setDoctorStatus({ status: 'ok', script_exists: true, mode: 'Netlify Cloud Engine' }));
+          .catch(() => setDoctorStatus({ status: 'ok', mode: 'Netlify / Live Cloud Engine' }));
 
         handleSearch('Claude 3.7', 30, 'quick');
       }, []);
+
+      const load24HTrends = async () => {
+        setIsFetchingTrends(true);
+        const trends = await fetch24HTrendingTopics();
+        setHotTrends(trends);
+        setIsFetchingTrends(false);
+      };
 
       const handleSearch = async (searchTopic = topic, searchDays = days, searchDepth = depth) => {
         if (!searchTopic || !searchTopic.trim()) return;
@@ -363,7 +410,7 @@
 
         const cleanTopic = searchTopic.trim();
 
-        // 1. Try local or Netlify serverless endpoint
+        // 1. Try local/Netlify server endpoint
         try {
           const res = await fetch('/api/search', {
             method: 'POST',
@@ -386,10 +433,10 @@
             }
           }
         } catch (err) {
-          console.warn('/api/search failed or running on Netlify CDN without backend. Fallback to direct client fetch.', err);
+          console.warn('/api/search unavailable, falling back to browser direct fetch.');
         }
 
-        // 2. Direct Live Client-Side Keyless Fetcher (Works 100% on Netlify, Vercel, GitHub Pages & Any Cloud Host!)
+        // 2. Direct Live Client-Side Keyless Fetcher
         try {
           const liveData = await fetchLiveClientResearch(cleanTopic, searchDays);
           setResultsData(liveData);
@@ -467,11 +514,11 @@
                       fontSize: '0.78rem',
                       fontWeight: '700'
                     }}>
-                      Netlify Cloud Live Ready
+                      24H Hot Trends Live
                     </span>
                   </div>
                   <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginTop: '2px' }}>
-                    Reddit, HackerNews, GitHub, Polymarket의 실시간 30일 데이터 수집 대시보드
+                    최근 24시간 실시간 핫 트렌드 추출 & Reddit, HackerNews, GitHub, Polymarket 딥 리서치
                   </p>
                 </div>
               </div>
@@ -499,38 +546,61 @@
 
             </div>
 
-            <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid rgba(203, 213, 225, 0.5)', display: 'flex', alignItems: 'center', gap: '10px', overflowX: 'auto' }}>
-              <span style={{ fontSize: '0.82rem', fontWeight: '700', color: 'var(--text-dim)', whiteSpace: 'nowrap' }}>
-                인기 리서치 주제:
-              </span>
-              {PRESETS.map((item, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => { setTopic(item.topic); handleSearch(item.topic, days, depth); }}
-                  style={{
-                    background: 'rgba(239, 246, 255, 0.8)',
-                    border: '1px solid rgba(191, 219, 254, 0.9)',
-                    color: '#1d4ed8',
-                    padding: '5px 14px',
-                    borderRadius: '20px',
-                    fontSize: '0.82rem',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                    transition: 'all 0.2s ease'
-                  }}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.background = '#2563eb';
-                    e.currentTarget.style.color = '#ffffff';
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.background = 'rgba(239, 246, 255, 0.8)';
-                    e.currentTarget.style.color = '#1d4ed8';
-                  }}
-                >
-                  {item.label}
-                </button>
-              ))}
+            {/* Dynamic 24H Hot Trends Row */}
+            <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid rgba(203, 213, 225, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', overflowX: 'auto', flex: 1 }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: '800', color: '#2563eb', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  ⚡ 24시간 핫 트렌드 (실시간 수집):
+                </span>
+                {hotTrends.map((item, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => { setTopic(item.topic); handleSearch(item.topic, days, depth); }}
+                    style={{
+                      background: 'rgba(239, 246, 255, 0.9)',
+                      border: '1px solid rgba(191, 219, 254, 0.9)',
+                      color: '#1d4ed8',
+                      padding: '5px 14px',
+                      borderRadius: '20px',
+                      fontSize: '0.82rem',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      transition: 'all 0.2s ease',
+                      boxShadow: '0 2px 4px rgba(37, 99, 235, 0.05)'
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.background = '#2563eb';
+                      e.currentTarget.style.color = '#ffffff';
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.background = 'rgba(239, 246, 255, 0.9)';
+                      e.currentTarget.style.color = '#1d4ed8';
+                    }}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={load24HTrends}
+                disabled={isFetchingTrends}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--blue-primary)',
+                  fontSize: '0.78rem',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {isFetchingTrends ? '🔄 24H 트렌드 갱신 중...' : '🔄 트렌드 새로고침'}
+              </button>
             </div>
           </header>
 
