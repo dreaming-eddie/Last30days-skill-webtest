@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>last30days · 엄격한 Lookback Window 날짜 검증 딥 리서치</title>
+  <title>last30days · 한영 혼용 지능형 멀티 파이프라인 딥 리서치</title>
   <meta name="description" content="What's happened in the last 30 days? Real human opinions from Reddit, HackerNews, YouTube, X, GitHub, Polymarket - Scored by the People." />
 
   <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
@@ -152,7 +152,6 @@
     .badge-x, .badge-twitter { background: #f0f9ff; color: #0284c7; border: 1px solid #e0f2fe; }
     .badge-github { background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; }
     .badge-polymarket { background: #eff6ff; color: #2563eb; border: 1px solid #dbeafe; }
-    .badge-arxiv { background: #fefce8; color: #ca8a04; border: 1px solid #fef08a; }
 
     .btn-primary {
       background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
@@ -215,122 +214,167 @@
   <script type="text/babel">
     const { useState, useEffect } = React;
 
-    const SYNONYM_MAP = {
-      'hr': ['hr', 'human resources', 'people operations', 'hr tech', 'recruiting', 'hiring'],
-      'ai': ['ai', 'artificial intelligence', 'llm', 'generative ai', 'machine learning'],
-      'pr': ['pr', 'pull request', 'public relations'],
-      'ml': ['ml', 'machine learning', 'deep learning'],
-      'ui': ['ui', 'user interface', 'frontend', 'design'],
-      'ux': ['ux', 'user experience', 'design'],
-      'ev': ['ev', 'electric vehicle', 'tesla'],
-      'ceo': ['ceo', 'chief executive officer', 'founder']
+    // Korean to English Keyword Translation & Concept Dictionary
+    const BILINGUAL_DICTIONARY = {
+      '실적': 'earnings',
+      '특징': 'features',
+      '성능': 'benchmark performance',
+      '주가': 'stock price',
+      '전망': 'outlook forecast',
+      '사용법': 'tutorial guide',
+      '비교': 'comparison vs',
+      '클로드': 'Claude',
+      '엔비디아': 'Nvidia',
+      '딥시크': 'DeepSeek',
+      '리액트': 'React',
+      '파이썬': 'Python',
+      '인공지능': 'AI',
+      '주식': 'stock'
     };
 
-    function expandQueryTerms(rawTopic) {
-      const norm = (rawTopic || '').trim().toLowerCase();
-      const terms = [rawTopic];
+    // Smart Mixed Language Query Normalizer
+    function processMixedLanguageQuery(rawQuery) {
+      const q = (rawQuery || '').trim();
+      const engTokens = q.match(/[A-Za-z0-9.]+/g) || [];
+      const korTokens = q.match(/[가-힣]+/g) || [];
 
-      if (SYNONYM_MAP[norm]) {
-        terms.push(...SYNONYM_MAP[norm]);
-      } else if (norm.length <= 3) {
-        terms.push(`${norm} tech`, `${norm} news`, `${norm} 2026`);
+      let primaryEngQuery = engTokens.join(' ');
+      let expandedEngQueries = [];
+
+      // If user typed Korean words like "Nvidia 실적" or "클로드 3.7"
+      if (korTokens.length > 0) {
+        let translatedTerms = [];
+        korTokens.forEach(kt => {
+          if (BILINGUAL_DICTIONARY[kt]) {
+            translatedTerms.push(BILINGUAL_DICTIONARY[kt]);
+          }
+        });
+
+        if (primaryEngQuery && translatedTerms.length > 0) {
+          expandedEngQueries.push(`${primaryEngQuery} ${translatedTerms.join(' ')}`);
+        } else if (translatedTerms.length > 0) {
+          expandedEngQueries.push(translatedTerms.join(' '));
+        }
+
+        // If English token exists (e.g. "Nvidia" in "Nvidia 실적"), ensure standalone "Nvidia" is queried for HN/Reddit/GitHub!
+        if (primaryEngQuery) {
+          expandedEngQueries.push(primaryEngQuery);
+        }
+      } else {
+        expandedEngQueries.push(q);
       }
-      return [...new Set(terms)];
+
+      return {
+        original: q,
+        koreanQuery: q, // for Korean Google News
+        globalQueries: [...new Set(expandedEngQueries.filter(x => x.length > 0))] // for Reddit, HN, GitHub, Polymarket
+      };
     }
 
-    function calculateStrictRelevance(query, title = '', summary = '') {
-      const qNorm = (query || '').toLowerCase().trim();
+    // Smart Relevance Score Calculator for Mixed Language
+    function calculateBilingualRelevance(queryObj, title = '', summary = '') {
       const tNorm = (title || '').toLowerCase();
       const sNorm = (summary || '').toLowerCase();
 
-      if (!qNorm) return 0.5;
+      const origNorm = queryObj.original.toLowerCase();
+      const globalTargets = queryObj.globalQueries.map(g => g.toLowerCase());
 
-      const expanded = expandQueryTerms(qNorm).map(s => s.toLowerCase());
-
-      for (const syn of expanded) {
-        const rx = new RegExp(`\\b${syn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
-        if (rx.test(tNorm) || tNorm.includes(syn)) {
-          if (tNorm === syn) return 0.99;
-          if (tNorm.startsWith(syn)) return 0.95;
-          return 0.91;
-        }
+      // Check full title match against original or expanded English targets
+      for (const target of [origNorm, ...globalTargets]) {
+        if (!target) continue;
+        if (tNorm.includes(target)) return 0.98;
+        if (sNorm.includes(target)) return 0.85;
       }
 
-      for (const syn of expanded) {
-        if (sNorm.includes(syn)) return 0.76;
-      }
-
-      const tokens = qNorm.split(/\s+/).filter(t => t.length > 0);
+      // Token match
+      const tokens = origNorm.split(/\s+/).concat(globalTargets.flatMap(g => g.split(/\s+/)));
       let matched = 0;
       tokens.forEach(tok => {
-        if (tNorm.includes(tok) || sNorm.includes(tok)) matched++;
+        if (tok.length > 1 && (tNorm.includes(tok) || sNorm.includes(tok))) matched++;
       });
 
-      if (matched > 0) return 0.65;
+      if (matched > 0) return 0.75;
 
-      return 0.30;
+      return 0.40;
     }
 
-    // Direct Live Client-Side Fetcher with STRICT LOOKBACK WINDOW DATE ENFORCEMENT
+    // Direct Live Client-Side Fetcher with Bilingual Multi-Branch Routing
     async function fetchLiveClientResearch(queryTopic, searchDays = 30, searchDepth = 'quick') {
-      console.log(`[Strict Date Engine] Topic: "${queryTopic}", Lookback Window: ${searchDays} days, Depth: ${searchDepth}`);
+      const qObj = processMixedLanguageQuery(queryTopic);
+      console.log(`[Bilingual Router] Original: "${qObj.original}", Global Eng Queries:`, qObj.globalQueries);
+
       const rawFindings = [];
       const sourceStatus = {
-        googlenews: "ok",
+        googlenews_kr: "ok",
+        googlenews_us: "ok",
         hackernews: "ok",
         reddit: "ok",
         github: "ok",
-        polymarket: "ok",
-        arxiv: "ok"
+        polymarket: "ok"
       };
 
-      const perPage = searchDepth === 'deep' ? 25 : 12;
-      const searchTerms = expandQueryTerms(queryTopic);
-
-      // STRICT CUTOFF TIMESTAMP CALCULATION
+      const perPage = searchDepth === 'deep' ? 20 : 10;
       const nowMs = Date.now();
       const cutoffMs = nowMs - (Number(searchDays) * 24 * 60 * 60 * 1000);
       const cutoffSec = Math.floor(cutoffMs / 1000);
 
-      // Map searchDays to Reddit 't' parameter (hour, day, week, month, year, all)
-      let redditTimeParam = 'month';
-      if (searchDays <= 1) redditTimeParam = 'day';
-      else if (searchDays <= 7) redditTimeParam = 'week';
-      else if (searchDays <= 30) redditTimeParam = 'month';
-      else if (searchDays <= 365) redditTimeParam = 'year';
-      else redditTimeParam = 'all';
+      // 1. Google News Korea (Korean Query)
+      try {
+        const gnewsKrUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(`https://news.google.com/rss/search?q=${encodeURIComponent(qObj.original)}+when:${searchDays}d&hl=ko&gl=KR&ceid=KR:ko`)}`;
+        const res = await fetch(gnewsKrUrl);
+        if (res.ok) {
+          const data = await res.json();
+          (data.items || []).slice(0, perPage).forEach(item => {
+            if (item.title && item.link) {
+              const cleanTitle = item.title.replace(/\s+-\s+[^-]+$/, '');
+              const publisher = item.author || (item.title.match(/-\s+([^-]+)$/) || [])[1] || 'Google News Korea';
+              
+              rawFindings.push({
+                candidate_id: `gnews-kr-${osHash(item.link)}`,
+                source: 'googlenews',
+                title: cleanTitle,
+                url: item.link,
+                summary: item.description ? item.description.replace(/<[^>]*>/g, '').slice(0, 220) + '...' : `Google News 한국 속보 (${publisher})`,
+                published_at: item.pubDate ? item.pubDate.split(' ')[0] : new Date().toISOString().split('T')[0],
+                published_timestamp: item.pubDate ? new Date(item.pubDate).getTime() : nowMs,
+                engagement: { publisher: `${publisher} (국내)`, points: 420, score_by_people: 920 }
+              });
+            }
+          });
+        }
+      } catch (err) {}
 
-      for (const q of searchTerms.slice(0, 3)) {
-        // 1. Google News RSS API with `when:${searchDays}d` parameter for strict date filtering
+      // 2. Global English Sources (HackerNews, Reddit, GitHub, Polymarket) using Global English Queries
+      for (const globalQuery of qObj.globalQueries) {
+        
+        // Google News US / Global
         try {
-          const googleRssUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(`https://news.google.com/rss/search?q=${encodeURIComponent(q)}+when:${searchDays}d&hl=en-US&gl=US&ceid=US:en`)}`;
-          const res = await fetch(googleRssUrl);
+          const gnewsUsUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(`https://news.google.com/rss/search?q=${encodeURIComponent(globalQuery)}+when:${searchDays}d&hl=en-US&gl=US&ceid=US:en`)}`;
+          const res = await fetch(gnewsUsUrl);
           if (res.ok) {
             const data = await res.json();
-            (data.items || []).slice(0, perPage).forEach(item => {
+            (data.items || []).slice(0, 10).forEach(item => {
               if (item.title && item.link) {
                 const cleanTitle = item.title.replace(/\s+-\s+[^-]+$/, '');
-                const publisher = item.author || (item.title.match(/-\s+([^-]+)$/) || [])[1] || 'Google News';
-                const pubDateStr = item.pubDate ? item.pubDate.split(' ')[0] : new Date().toISOString().split('T')[0];
-                
+                const publisher = item.author || 'Google News US';
                 rawFindings.push({
-                  candidate_id: `gnews-${osHash(item.link)}`,
+                  candidate_id: `gnews-us-${osHash(item.link)}`,
                   source: 'googlenews',
                   title: cleanTitle,
                   url: item.link,
-                  summary: item.description ? item.description.replace(/<[^>]*>/g, '').slice(0, 220) + '...' : `Google News breaking report via ${publisher}`,
-                  published_at: pubDateStr,
+                  summary: item.description ? item.description.replace(/<[^>]*>/g, '').slice(0, 220) + '...' : `Global News report via ${publisher}`,
+                  published_at: item.pubDate ? item.pubDate.split(' ')[0] : new Date().toISOString().split('T')[0],
                   published_timestamp: item.pubDate ? new Date(item.pubDate).getTime() : nowMs,
-                  engagement: { publisher: publisher, points: 340, comments: 45, score_by_people: 885 }
+                  engagement: { publisher: `${publisher} (글로벌)`, points: 310, score_by_people: 850 }
                 });
               }
             });
           }
         } catch (err) {}
 
-        // 2. HackerNews Algolia API with `numericFilters=created_at_i>${cutoffSec}` for strict timestamp filtering
+        // HackerNews Algolia API
         try {
-          const hnUrl = `https://hn.algolia.com/api/v1/search_by_date?query=${encodeURIComponent(q)}&tags=story&numericFilters=created_at_i>${cutoffSec}&hitsPerPage=${perPage}`;
+          const hnUrl = `https://hn.algolia.com/api/v1/search_by_date?query=${encodeURIComponent(globalQuery)}&tags=story&numericFilters=created_at_i>${cutoffSec}&hitsPerPage=${perPage}`;
           const res = await fetch(hnUrl);
           if (res.ok) {
             const data = await res.json();
@@ -338,16 +382,14 @@
               if (item.title) {
                 const humanScore = (item.points || 0) * 2 + (item.num_comments || 0) * 3;
                 const pubDateStr = item.created_at ? item.created_at.split('T')[0] : new Date().toISOString().split('T')[0];
-                const pubTs = item.created_at_i ? item.created_at_i * 1000 : new Date(pubDateStr).getTime();
-
                 rawFindings.push({
                   candidate_id: `hn-${item.objectID}`,
                   source: 'hackernews',
                   title: item.title,
                   url: item.url || `https://news.ycombinator.com/item?id=${item.objectID}`,
-                  summary: `HackerNews tech discussion thread with ${item.points || 0} upvotes and ${item.num_comments || 0} community comments.`,
+                  summary: `HackerNews tech discussion thread with ${item.points || 0} upvotes and ${item.num_comments || 0} comments.`,
                   published_at: pubDateStr,
-                  published_timestamp: pubTs,
+                  published_timestamp: item.created_at_i ? item.created_at_i * 1000 : new Date(pubDateStr).getTime(),
                   engagement: { points: item.points || 0, comments: item.num_comments || 0, score_by_people: humanScore }
                 });
               }
@@ -355,9 +397,9 @@
           }
         } catch (err) {}
 
-        // 3. Reddit Public API with dynamic `t=${redditTimeParam}` parameter
+        // Reddit Public API
         try {
-          const redditUrl = `https://www.reddit.com/search.json?q=${encodeURIComponent(q)}&sort=new&t=${redditTimeParam}&limit=${perPage}`;
+          const redditUrl = `https://www.reddit.com/search.json?q=${encodeURIComponent(globalQuery)}&sort=relevance&t=month&limit=${perPage}`;
           const res = await fetch(redditUrl);
           if (res.ok) {
             const data = await res.json();
@@ -367,15 +409,13 @@
               if (post && post.title) {
                 const humanScore = (post.score || 0) + (post.num_comments || 0) * 2;
                 const pubTs = post.created_utc * 1000;
-                const pubDateStr = new Date(pubTs).toISOString().split('T')[0];
-
                 rawFindings.push({
                   candidate_id: `reddit-${post.id}`,
                   source: 'reddit',
                   title: post.title,
                   url: `https://www.reddit.com${post.permalink}`,
                   summary: post.selftext ? post.selftext.slice(0, 220) + '...' : `r/${post.subreddit} community post by u/${post.author} with ${post.score} upvotes.`,
-                  published_at: pubDateStr,
+                  published_at: new Date(pubTs).toISOString().split('T')[0],
                   published_timestamp: pubTs,
                   engagement: { score: post.score || 0, num_comments: post.num_comments || 0, score_by_people: humanScore }
                 });
@@ -384,18 +424,15 @@
           }
         } catch (err) {}
 
-        // 4. GitHub Repos API with updated date filter `pushed:>${cutoffDate}`
+        // GitHub Repos API
         try {
-          const cutoffDate = new Date(cutoffMs).toISOString().split('T')[0];
-          const ghUrl = `https://api.github.com/search/repositories?q=${encodeURIComponent(q)}+pushed:>${cutoffDate}&sort=updated&per_page=${perPage}`;
+          const ghUrl = `https://api.github.com/search/repositories?q=${encodeURIComponent(globalQuery)}&sort=updated&per_page=${perPage}`;
           const res = await fetch(ghUrl);
           if (res.ok) {
             const data = await res.json();
             (data.items || []).forEach(repo => {
               const humanScore = (repo.stargazers_count || 0) + (repo.forks_count || 0) * 3;
               const pubDateStr = repo.updated_at ? repo.updated_at.split('T')[0] : new Date().toISOString().split('T')[0];
-              const pubTs = new Date(pubDateStr).getTime();
-
               rawFindings.push({
                 candidate_id: `gh-${repo.id}`,
                 source: 'github',
@@ -403,7 +440,7 @@
                 url: repo.html_url,
                 summary: repo.description || `GitHub open source project with ${repo.stargazers_count} stars and ${repo.forks_count} forks.`,
                 published_at: pubDateStr,
-                published_timestamp: pubTs,
+                published_timestamp: new Date(pubDateStr).getTime(),
                 engagement: { stars: repo.stargazers_count || 0, forks: repo.forks_count || 0, score_by_people: humanScore }
               });
             });
@@ -421,37 +458,30 @@
 
       const uniqueFindings = Array.from(uniqueMap.values());
 
-      // STRICT DATE GUARD: Discard ANY item older than cutoffMs!
+      // Date cutoff filter
       const dateValidatedFindings = uniqueFindings.filter(item => {
         if (!item.published_timestamp) return true;
         return item.published_timestamp >= cutoffMs;
       });
 
-      console.log(`[Strict Date Engine] Total raw items: ${uniqueFindings.length}, After Lookback (${searchDays}d) filter: ${dateValidatedFindings.length}`);
-
-      // Calculate Relevance Score
+      // Calculate Bilingual Relevance
       const scoredFindings = dateValidatedFindings.map(item => ({
         ...item,
-        relevance_score: calculateStrictRelevance(queryTopic, item.title, item.summary)
+        relevance_score: calculateBilingualRelevance(qObj, item.title, item.summary)
       }));
 
-      let filteredFindings = scoredFindings.filter(item => item.relevance_score >= 0.35);
-      if (filteredFindings.length < 3) {
-        filteredFindings = scoredFindings.filter(item => item.relevance_score >= 0.20);
-      }
-
-      filteredFindings.sort((a, b) => b.relevance_score - a.relevance_score);
+      scoredFindings.sort((a, b) => b.relevance_score - a.relevance_score);
 
       return {
         query_topic: queryTopic,
-        expanded_search_terms: searchTerms,
+        bilingual_queries: qObj,
         window_days: Number(searchDays),
         cutoff_date: new Date(cutoffMs).toISOString().split('T')[0],
         research_depth: searchDepth,
         schema_version: "1.2",
         as_of_date: new Date().toISOString().split('T')[0],
         source_status: sourceStatus,
-        findings: filteredFindings
+        findings: scoredFindings
       };
     }
 
@@ -487,9 +517,9 @@
       if (dynamicTopics.length === 0) {
         return [
           { label: '🔥 Claude 3.7', topic: 'Claude 3.7' },
-          { label: '💼 HR Tech 2026', topic: 'HR' },
+          { label: '📈 Nvidia 실적', topic: 'Nvidia 실적' },
           { label: '🚀 DeepSeek V3', topic: 'DeepSeek V3' },
-          { label: '📈 Nvidia Earnings', topic: 'Nvidia Earnings' },
+          { label: '💼 HR 트렌드', topic: 'HR' },
           { label: '⚛️ React 19', topic: 'React 19' }
         ];
       }
@@ -497,7 +527,7 @@
     }
 
     function App() {
-      const [topic, setTopic] = useState('Claude 3.7');
+      const [topic, setTopic] = useState('Nvidia 실적');
       const [days, setDays] = useState(30);
       const [depth, setDepth] = useState('quick');
       const [selectedSources, setSelectedSources] = useState([]);
@@ -523,9 +553,9 @@
         fetch('/api/doctor')
           .then(res => res.json())
           .then(data => setDoctorStatus(data))
-          .catch(() => setDoctorStatus({ status: 'ok', mode: 'Strict Lookback Window Date Engine' }));
+          .catch(() => setDoctorStatus({ status: 'ok', mode: 'Bilingual Multi-Branch Routing Engine' }));
 
-        handleSearch('Claude 3.7', 30, 'quick');
+        handleSearch('Nvidia 실적', 30, 'quick');
       }, []);
 
       const load24HTrends = async () => {
@@ -559,12 +589,6 @@
           if (res.ok) {
             const data = await res.json();
             if (data && data.findings && data.findings.length > 0) {
-              const cutoffMs = Date.now() - (Number(searchDays) * 24 * 60 * 60 * 1000);
-              data.findings = data.findings.filter(item => {
-                if (!item.published_at) return true;
-                return new Date(item.published_at).getTime() >= cutoffMs;
-              });
-
               setResultsData(data);
               setIsLoading(false);
               return;
@@ -593,14 +617,12 @@
           case 'twitter': return 'badge-x';
           case 'github': return 'badge-github';
           case 'polymarket': return 'badge-polymarket';
-          case 'arxiv': return 'badge-arxiv';
           default: return 'badge-platform';
         }
       };
 
       const findings = resultsData?.findings || [];
-      const sourcesStatus = resultsData?.source_status || {};
-      const expandedTerms = resultsData?.expanded_search_terms || [topic];
+      const bilingualQueries = resultsData?.bilingual_queries || { globalQueries: [topic] };
       const availablePlatforms = ['all', ...new Set(findings.map(f => f.source || 'web'))];
 
       let filteredFindings = findings.filter(item => {
@@ -642,25 +664,25 @@
                   fontSize: '1.65rem',
                   color: '#ffffff'
                 }}>
-                  📅
+                  🌐
                 </div>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <h1 style={{ fontSize: '1.55rem', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.5px' }}>last30days</h1>
                     <span style={{
-                      background: 'rgba(21, 128, 61, 0.1)',
-                      color: '#15803d',
-                      border: '1px solid rgba(21, 128, 61, 0.25)',
+                      background: 'rgba(37, 99, 235, 0.1)',
+                      color: '#2563eb',
+                      border: '1px solid rgba(37, 99, 235, 0.25)',
                       padding: '4px 12px',
                       borderRadius: '16px',
                       fontSize: '0.78rem',
                       fontWeight: '700'
                     }}>
-                      Strict Lookback Window ({days} Days Cutoff: {resultsData?.cutoff_date || 'Enforced'})
+                      Bilingual Multi-Branch Router Active
                     </span>
                   </div>
                   <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginTop: '3px' }}>
-                    What's happened in the last 30 days around {resultsData?.query_topic || 'X'}? Real human opinion scored by the people.
+                    한영 혼용 키워드(예: Nvidia 실적, 클로드 3.7) 자동 분동 수집 파이프라인
                   </p>
                 </div>
               </div>
@@ -716,14 +738,14 @@
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && !isLoading && handleSearch(topic, days, depth)}
-                placeholder="조사할 주제 또는 키워드를 입력하세요 (예: HR, AI, Claude 3.7, Nvidia)..."
+                placeholder="한글/영문 혼용 키워드를 입력하세요 (예: Nvidia 실적, 클로드 3.7, React 19 특징)..."
                 style={{ flex: 1, minWidth: '280px', height: '54px', padding: '0 20px', background: 'rgba(255, 255, 255, 0.95)', border: '1px solid var(--border-glass)', borderRadius: 'var(--radius-sm)', color: 'var(--text-main)', fontSize: '1.05rem', fontWeight: '500', outline: 'none' }}
               />
               <button onClick={() => handleSearch(topic, days, depth)} disabled={isLoading || !topic.trim()} className="btn-primary" style={{ height: '54px', padding: '0 32px', fontSize: '1.05rem', whiteSpace: 'nowrap' }}>
                 {isLoading ? (
                   <>
                     <div className="spinner" style={{ width: '18px', height: '18px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%' }} />
-                    <span>최신 날짜 검증 수집 중...</span>
+                    <span>한영 분동 지능형 수집 중...</span>
                   </>
                 ) : (
                   <span>🌊 딥 리서치 실행</span>
@@ -736,7 +758,7 @@
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                   <label style={{ fontSize: '0.8rem', fontWeight: '800', color: 'var(--text-dim)' }}>조사 기간 (LOOKBACK DAYS)</label>
                   <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#16a34a' }}>
-                    {days}일 이내만 엄격 차단
+                    {days}일 이내만 수집
                   </span>
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -752,7 +774,7 @@
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                   <label style={{ fontSize: '0.8rem', fontWeight: '800', color: 'var(--text-dim)' }}>탐색 깊이 (RESEARCH DEPTH)</label>
                   <span style={{ fontSize: '0.72rem', fontWeight: '700', color: depth === 'deep' ? '#7c3aed' : '#0284c7' }}>
-                    {depth === 'deep' ? '25건 수집 + 동의어 3중 확장' : '12건 빠른 수집'}
+                    {depth === 'deep' ? '20건 수집 + 다중 파이프라인' : '10건 빠른 수집'}
                   </span>
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -796,11 +818,11 @@
                   <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span>📊 Sources Breakdown</span>
                     <span style={{ fontSize: '0.78rem', background: '#dcfce7', color: '#15803d', padding: '3px 10px', borderRadius: '12px', fontWeight: '700' }}>
-                      Strict {days} Days Lookback Enforced ({resultsData.cutoff_date} 이후만 수집)
+                      글로벌 쿼리 분동: {bilingualQueries.globalQueries.join(' / ')}
                     </span>
                   </h3>
                   <p style={{ fontSize: '0.84rem', color: 'var(--text-dim)', marginTop: '3px' }}>
-                    검색 키워드 <strong>"{resultsData.query_topic}"</strong>에 대해 최근 <strong>{days}일간</strong>의 데이터 총 <strong>{findings.length}개</strong> 수집 완료
+                    검색 키워드 <strong>"{resultsData.query_topic}"</strong>에 대해 국내 뉴스 & 글로벌 커뮤니티 총 <strong>{findings.length}개</strong> 항목 통합 수집
                   </p>
                 </div>
               </div>
@@ -819,7 +841,7 @@
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                         <span style={{ fontSize: '1.1rem' }}>{src.icon}</span>
                         <span style={{ fontSize: '0.72rem', fontWeight: '800', color: count > 0 ? '#16a34a' : '#64748b', background: count > 0 ? '#f0fdf4' : '#f1f5f9', padding: '2px 8px', borderRadius: '10px' }}>
-                          {count > 0 ? 'Verified' : 'Filtered'}
+                          {count > 0 ? 'Active' : 'Filtered'}
                         </span>
                       </div>
                       <div style={{ fontSize: '0.88rem', fontWeight: '800', color: '#0f172a' }}>{src.name}</div>
@@ -834,7 +856,7 @@
           {resultsData && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px', flexWrap: 'wrap', gap: '14px' }}>
               <h2 style={{ fontSize: '1.35rem', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.3px' }}>
-                수집 결과: <span style={{ color: '#2563eb' }}>"{resultsData.query_topic}"</span> <span style={{ fontSize: '0.95rem', color: 'var(--text-dim)', fontWeight: '600' }}>({findings.length}개 항목 · 최근 {days}일 이내)</span>
+                수집 결과: <span style={{ color: '#2563eb' }}>"{resultsData.query_topic}"</span> <span style={{ fontSize: '0.95rem', color: 'var(--text-dim)', fontWeight: '600' }}>({findings.length}개 항목 수집 완료)</span>
               </h2>
               <button onClick={() => setIsExportOpen(true)} className="btn-secondary" style={{ fontSize: '0.86rem', padding: '10px 18px' }}>
                 📥 리포트 / JSON 내보내기
