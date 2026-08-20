@@ -9,6 +9,8 @@ import urllib.request
 import xml.etree.ElementTree as ET
 import re
 import socket
+import time
+import email.utils
 from pathlib import Path
 
 # Fix Windows console encoding for Unicode/Emojis
@@ -86,6 +88,15 @@ def fetch_google_news_rss(topic, days=30, lang="ko", country="KR", site_filter="
 
                 clean_desc = re.sub(r'<[^>]+>', '', desc).strip()
 
+                # Parse pubDate into timestamp ms
+                pub_ts = int(time.time() * 1000)
+                if pub_date:
+                    try:
+                        dt = email.utils.parsedate_to_datetime(pub_date)
+                        pub_ts = int(dt.timestamp() * 1000)
+                    except Exception:
+                        pass
+
                 # Ad filter check
                 title_lower = title.lower()
                 if any(ad_kw in title_lower for ad_kw in ["google ad", "sponsored", "광고", "ads", "advertiser"]):
@@ -96,6 +107,7 @@ def fetch_google_news_rss(topic, days=30, lang="ko", country="KR", site_filter="
                         "title": title,
                         "link": link,
                         "pubDate": pub_date,
+                        "published_timestamp": pub_ts,
                         "author": publisher or "Google News",
                         "description": clean_desc
                     })
@@ -277,6 +289,7 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
                 "url": item.get("link", "#"),
                 "summary": item.get("description") or "Google Scholar & ArXiv 학술 논문 및 연구 자료",
                 "published_at": item.get("pubDate", "최근"),
+                "published_timestamp": item.get("published_timestamp", int(time.time() * 1000)),
                 "relevance_score": 0.96,
                 "engagement": {"publisher": "Google Scholar / ArXiv", "score_by_people": 950}
             })
@@ -289,6 +302,7 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
                 "url": item.get("link", "#"),
                 "summary": item.get("description") or f"Google News 속보 ({item.get('author', '언론사')})",
                 "published_at": item.get("pubDate", "최근"),
+                "published_timestamp": item.get("published_timestamp", int(time.time() * 1000)),
                 "relevance_score": 0.95,
                 "engagement": {"publisher": item.get("author", "Google News"), "score_by_people": 920}
             })
@@ -301,6 +315,7 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
                 "url": item.get("link", "#"),
                 "summary": item.get("description") or f"국내 IT/테크 블로그 포스트 ({item.get('author', '블로그')})",
                 "published_at": item.get("pubDate", "최근"),
+                "published_timestamp": item.get("published_timestamp", int(time.time() * 1000)),
                 "relevance_score": 0.94,
                 "engagement": {"publisher": item.get("author", "Velog/Tistory"), "score_by_people": 890}
             })
@@ -313,6 +328,7 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
                 "url": item.get("link", "#"),
                 "summary": item.get("description") or "Product Hunt 신규 AI 서비스 / 앱 출시 피드백",
                 "published_at": item.get("pubDate", "최근"),
+                "published_timestamp": item.get("published_timestamp", int(time.time() * 1000)),
                 "relevance_score": 0.92,
                 "engagement": {"publisher": "Product Hunt", "score_by_people": 910}
             })
@@ -325,6 +341,7 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
                 "url": item.get("link", "#"),
                 "summary": item.get("description") or "Medium / Substack 심층 분석 테크 칼럼 & 뉴스레터",
                 "published_at": item.get("pubDate", "최근"),
+                "published_timestamp": item.get("published_timestamp", int(time.time() * 1000)),
                 "relevance_score": 0.91,
                 "engagement": {"publisher": "Medium/Substack", "score_by_people": 880}
             })

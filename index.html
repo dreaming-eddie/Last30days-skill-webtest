@@ -551,7 +551,7 @@
 
         // Fallback to rss2json if native endpoint unavailable
         if (gnewsItems.length === 0) {
-          const gnewsKrUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(`https://news.google.com/rss/search?q=${encodeURIComponent(qObj.original)}+when:${searchDays}d&hl=ko&gl=KR&ceid=KR:ko`)}`;
+          const gnewsKrUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(`https://news.google.com/rss/search?q=${encodeURIComponent(qObj.original)}&hl=ko&gl=KR&ceid=KR:ko`)}`;
           const res = await fetch(gnewsKrUrl);
           if (res.ok) {
             const data = await res.json();
@@ -583,12 +583,20 @@
         });
       } catch (err) {}
 
+      // Dynamic Reddit Time Window calculation based on searchDays lookback
+      let redditTime = 'month';
+      const daysNum = Number(searchDays);
+      if (daysNum <= 7) redditTime = 'week';
+      else if (daysNum <= 31) redditTime = 'month';
+      else if (daysNum <= 365) redditTime = 'year';
+      else redditTime = 'all';
+
       // 3. Global Multi-Sources
       for (const globalQuery of qObj.globalQueries) {
         
         // HackerNews
         try {
-          const hnUrl = `https://hn.algolia.com/api/v1/search_by_date?query=${encodeURIComponent(globalQuery)}&tags=story&numericFilters=created_at_i>${cutoffSec}&hitsPerPage=${perPage}`;
+          const hnUrl = `https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(globalQuery)}&tags=story&hitsPerPage=${perPage}`;
           const res = await fetch(hnUrl);
           if (res.ok) {
             const data = await res.json();
@@ -613,7 +621,7 @@
 
         // Reddit
         try {
-          const redditUrl = `https://www.reddit.com/search.json?q=${encodeURIComponent(globalQuery)}&sort=relevance&t=month&limit=${perPage}`;
+          const redditUrl = `https://www.reddit.com/search.json?q=${encodeURIComponent(globalQuery)}&sort=relevance&t=${redditTime}&limit=${perPage}`;
           const res = await fetch(redditUrl);
           if (res.ok) {
             const data = await res.json();
@@ -640,7 +648,7 @@
 
         // GitHub Repositories
         try {
-          const ghUrl = `https://api.github.com/search/repositories?q=${encodeURIComponent(globalQuery)}+pushed:>${cutoffDate}&sort=stars&order=desc&per_page=${perPage}`;
+          const ghUrl = `https://api.github.com/search/repositories?q=${encodeURIComponent(globalQuery)}&sort=stars&order=desc&per_page=${perPage}`;
           const res = await fetch(ghUrl);
           if (res.ok) {
             const data = await res.json();
