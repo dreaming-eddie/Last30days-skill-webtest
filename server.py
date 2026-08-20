@@ -207,6 +207,7 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
             },
             "sources": [
                 {"name": "alphaXiv", "type": "MCP Tools (discover_papers, get_paper_content, answer_pdf_queries)", "status": "Active"},
+                {"name": "Google Scholar", "type": "Google Scholar & ArXiv Academic Search", "status": "Active"},
                 {"name": "Google News", "type": "Direct Native RSS Parser & Ad Filter (/api/gnews)", "status": "Active"},
                 {"name": "Velog & Tistory", "type": "Korean Tech Blogs RSS Engine", "status": "Active"},
                 {"name": "Product Hunt", "type": "Global AI & App Launches Engine", "status": "Active"},
@@ -252,8 +253,13 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
         # Korean Tech Blogs (Velog & Tistory)
         velog_items = fetch_google_news_rss(topic, days=int(days), lang="ko", country="KR", site_filter="site:velog.io OR site:tistory.com")
         
-        # Product Hunt
+        # Target Query for English Global Platforms
         target_ph_query = translated_topic if translated_topic else topic
+
+        # Google Scholar & ArXiv Papers
+        scholar_items = fetch_google_news_rss(target_ph_query, days=int(days), lang="en", country="US", site_filter="site:scholar.google.com OR site:arxiv.org OR site:semanticscholar.org")
+        
+        # Product Hunt
         ph_items = fetch_google_news_rss(target_ph_query, days=int(days), lang="en", country="US", site_filter="site:producthunt.com")
         
         # Medium & Substack
@@ -262,6 +268,18 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
         if translated_topic and translated_topic.lower() != topic.lower():
             en_gnews = fetch_google_news_rss(translated_topic, days=int(days), lang="en", country="US")
             gnews_items.extend(en_gnews)
+
+        for idx, item in enumerate(scholar_items):
+            formatted_findings.append({
+                "candidate_id": f"scholar-server-{idx}-{os.urandom(4).hex()}",
+                "source": "googlescholar",
+                "title": f"🎓 [Google Scholar] {item.get('title', topic)}",
+                "url": item.get("link", "#"),
+                "summary": item.get("description") or "Google Scholar & ArXiv 학술 논문 및 연구 자료",
+                "published_at": item.get("pubDate", "최근"),
+                "relevance_score": 0.96,
+                "engagement": {"publisher": "Google Scholar / ArXiv", "score_by_people": 950}
+            })
 
         for idx, item in enumerate(gnews_items):
             formatted_findings.append({
