@@ -978,7 +978,7 @@
         bilingual_queries: qObj,
         window_days: Number(searchDays),
         cutoff_date: new Date(cutoffMs).toISOString().split('T')[0],
-        research_depth: searchDepth,
+        research_depth: 'deep',
         schema_version: "2.0",
         as_of_date: new Date().toISOString().split('T')[0],
         source_status: sourceStatus,
@@ -1287,7 +1287,7 @@
                   hotTrends.map((item, idx) => (
                     <button
                       key={idx}
-                      onClick={() => { setTopic(item.topic); handleSearch(item.topic, days, depth); }}
+                      onClick={() => { setTopic(item.topic); handleSearch(item.topic, days); }}
                       style={{
                         background: '#ffffff', border: '1px solid var(--border-glass)',
                         padding: '6px 14px', borderRadius: '20px', fontSize: '0.82rem', fontWeight: '700',
