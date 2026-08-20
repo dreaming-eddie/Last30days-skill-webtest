@@ -379,6 +379,32 @@
     const { useState, useEffect } = React;
 
     const BILINGUAL_DICTIONARY = {
+      // 일반 사회 / 경제 / 라이프스타일 / 문화
+      '부동산': 'real estate housing market property apartment',
+      '금리': 'interest rate inflation central bank monetary policy',
+      '환율': 'exchange rate currency USD KRW forex',
+      '다이어트': 'diet weight loss fitness healthy lifestyle',
+      '건강': 'health wellness medical medicine symptoms',
+      '여행': 'travel tourism destination travel guide hotel',
+      '육아': 'parenting child care education kids baby',
+      '재테크': 'personal finance investment wealth management savings',
+      '취업': 'employment hiring job market career interview resume',
+      '창업': 'startup business entrepreneurship small business',
+      '트렌드': 'trend fashion lifestyle consumer behavior culture',
+      '영화': 'movie film cinema review box office',
+      '음악': 'music album song K-pop concert charts',
+      '요리': 'cooking recipe food restaurant cuisine',
+      '자동차': 'car EV electric vehicle automotive review',
+      '스마트폰': 'smartphone mobile device review specs',
+      '게임': 'game gaming esport review release',
+      '정치': 'politics election policy government law',
+      '환경': 'environment climate change sustainability green',
+      '교육': 'education school learning university online course',
+      '주식': 'stocks investing market equity',
+      '물가': 'consumer price index inflation cost of living',
+      '복지': 'social welfare benefits policy',
+
+      // 테크 & IT / 서비스
       '스픽이지랩스': 'Speakeasy Labs Speak AI tutor English learning',
       '스픽': 'Speak AI Speakeasy Labs English',
       '실적': 'earnings financial results quarterly report',
@@ -394,12 +420,10 @@
       '리액트': 'React frontend framework',
       '파이썬': 'Python programming language',
       '인공지능': 'AI artificial intelligence LLM',
-      '주식': 'stocks investing market',
       '신제품': 'release launch announcement',
       '기술': 'technology architecture spec',
       '분석': 'analysis breakdown review',
-      '이슈': 'discussion controversies reactions',
-      '트렌드': 'trend popularity adoption'
+      '이슈': 'discussion controversies reactions'
     };
 
     // Google News Ad & Spam Filter
@@ -1015,11 +1039,12 @@
 
       if (dynamicTopics.length === 0) {
         return [
-          { label: '📄 Claude 3.7 Paper', topic: 'Claude 3.7' },
-          { label: '📈 Nvidia 실적', topic: 'Nvidia 실적' },
-          { label: '🚀 DeepSeek V3 Paper', topic: 'DeepSeek V3' },
-          { label: '💼 HR 트렌드', topic: 'HR' },
-          { label: '⚛️ React 19', topic: 'React 19' }
+          { label: '🏠 수도권 아파트 집값 전망', topic: '부동산 집값' },
+          { label: '📈 미국 연준 기준금리 인하', topic: '기준금리 인하' },
+          { label: '🤖 Claude 3.7 Deep Research', topic: 'Claude 3.7' },
+          { label: '✈️ 2026 해외여행 인기 휴가지', topic: '해외여행 추천' },
+          { label: '🥗 간헐적 단식 다이어트 효과', topic: '다이어트 건강' },
+          { label: '💼 2026 채용시장 이직 트렌드', topic: '취업 이직 트렌드' }
         ];
       }
       return dynamicTopics.slice(0, 8);
