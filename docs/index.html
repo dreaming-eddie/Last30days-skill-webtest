@@ -611,34 +611,36 @@
       return 0.40;
     }
 
-    // Google News Multi-Publisher Story Clustering Engine
+    // Google News & Naver Multi-Publisher Story Clustering Engine
     function clusterGoogleNewsFindings(findings) {
-      const gnewsItems = findings.filter(f => f.source === 'googlenews');
-      const otherItems = findings.filter(f => f.source !== 'googlenews');
+      const newsItems = findings.filter(f => f.source === 'googlenews' || f.source === 'naver');
+      const otherItems = findings.filter(f => f.source !== 'googlenews' && f.source !== 'naver');
 
-      if (gnewsItems.length === 0) return findings;
+      if (newsItems.length === 0) return findings;
 
       const clusters = [];
 
-      gnewsItems.forEach(item => {
+      newsItems.forEach(item => {
         let targetCluster = null;
-        const normTitle = (item.title || '').toLowerCase().replace(/[^\w가-힣\s]/g, '');
+        const cleanTitleText = (item.title || '').replace(/^💚\s*\[Naver\]\s*/i, '').replace(/^📰\s*/i, '');
+        const normTitle = cleanTitleText.toLowerCase().replace(/[^\w가-힣\s]/g, '');
         const tokens = normTitle.split(/\s+/).filter(t => t.length > 1);
 
         for (const cluster of clusters) {
-          const repTitle = (cluster.primary.title || '').toLowerCase().replace(/[^\w가-힣\s]/g, '');
+          const repTitleText = (cluster.primary.title || '').replace(/^💚\s*\[Naver\]\s*/i, '').replace(/^📰\s*/i, '');
+          const repTitle = repTitleText.toLowerCase().replace(/[^\w가-힣\s]/g, '');
           const repTokens = repTitle.split(/\s+/).filter(t => t.length > 1);
 
           const commonTokens = tokens.filter(t => repTokens.includes(t));
           const minLen = Math.min(tokens.length, repTokens.length);
 
-          if (commonTokens.length >= 2 && (commonTokens.length / minLen) >= 0.4) {
+          if (commonTokens.length >= 2 && (commonTokens.length / Math.max(minLen, 1)) >= 0.35) {
             targetCluster = cluster;
             break;
           }
         }
 
-        const pubName = item.engagement?.publisher || '언론사';
+        const pubName = item.engagement?.publisher || (item.source === 'naver' ? '네이버 파트너 매체' : 'Google News 매체');
 
         if (targetCluster) {
           targetCluster.related.push(item);
@@ -658,16 +660,16 @@
         const count = c.publishers.length;
         const primary = c.primary;
 
-        if (count > 1) {
+        if (count > 1 || c.related.length > 1) {
           return {
             ...primary,
             is_clustered: true,
-            cluster_count: count,
+            cluster_count: Math.max(count, c.related.length),
             publishers_list: c.publishers,
             related_articles: c.related,
             engagement: {
               ...primary.engagement,
-              publisher: `${c.publishers[0]} 외 ${count - 1}개 매체`
+              publisher: `${c.publishers[0]} 외 ${Math.max(count, c.related.length) - 1}개 언론사/매체`
             }
           };
         }
@@ -1556,6 +1558,7 @@
                     { name: 'alphaXiv', key: 'alphaxiv', icon: '📄' },
                     { name: 'Google Scholar', key: 'googlescholar', icon: '🎓' },
                     { name: 'Google News', key: 'googlenews', icon: '📰' },
+                    { name: 'Naver Blog/News', key: 'naver', icon: '💚' },
                     { name: 'Velog & Tistory', key: 'velog', icon: '📗' },
                     { name: 'Product Hunt', key: 'producthunt', icon: '🚀' },
                     { name: 'Medium & Substack', key: 'medium', icon: '✍️' },
