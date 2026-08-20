@@ -31,21 +31,14 @@ export default function Header({ onSelectTopic, onOpenDoctor, doctorStatus }) {
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <h1 style={{ fontSize: '1.4rem', fontWeight: '800', letterSpacing: '-0.5px' }}>last30days</h1>
-              <span style={{
-                background: 'rgba(99, 102, 241, 0.15)',
-                color: '#818cf8',
-                border: '1px solid rgba(99, 102, 241, 0.3)',
-                padding: '2px 8px',
-                borderRadius: '12px',
-                fontSize: '0.75rem',
-                fontWeight: '700'
-              }}>
-                v3.21 Web Engine
+              <h1 className="gradient-text" style={{ fontSize: '1.5rem', fontWeight: '800', letterSpacing: '-0.5px' }}>last30days</h1>
+              <span className="eyebrow-pill">
+                <span className="pulse-dot"></span>
+                v2.5 Deep Intelligence Engine
               </span>
             </div>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-              Real-time deep research on what people actually say across Reddit, X, HN, YouTube, TikTok & GitHub
+              14대 글로벌 수집 채널 (뉴스, 학술논문, Reddit, GitHub, Bluesky, YouTube, Dev.to, StackOverflow, Wikipedia)
             </p>
           </div>
         </div>
@@ -55,16 +48,10 @@ export default function Header({ onSelectTopic, onOpenDoctor, doctorStatus }) {
           <button 
             onClick={onOpenDoctor} 
             className="btn-secondary"
-            style={{ fontSize: '0.85rem', padding: '8px 14px' }}
+            style={{ fontSize: '0.85rem', padding: '8px 14px', color: '#2563eb', borderColor: 'rgba(37, 99, 235, 0.3)', background: '#eff6ff' }}
           >
-            <Activity size={16} color={doctorStatus?.script_exists ? '#10b981' : '#f59e0b'} />
-            <span>System Doctor</span>
-            <span style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              backgroundColor: doctorStatus?.script_exists ? '#10b981' : '#f59e0b'
-            }}></span>
+            <Activity size={16} color="#2563eb" />
+            <span>System Health & Patch Notes</span>
           </button>
           
           <a

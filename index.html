@@ -1354,7 +1354,7 @@
                           <button
                             key={d}
                             type="button"
-                            onClick={() => setDays(d)}
+                            onClick={() => { setDays(d); handleSearch(topic, d); }}
                             style={{
                               padding: '5px 14px', borderRadius: '9999px', fontSize: '0.8rem', fontWeight: '800',
                               border: '1px solid', cursor: 'pointer', transition: 'all 0.3s cubic-bezier(0.32, 0.72, 0, 1)',

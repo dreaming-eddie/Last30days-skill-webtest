@@ -41,78 +41,75 @@ export default function SearchControl({
   };
 
   return (
-    <div className="glass-panel" style={{ padding: '24px', marginBottom: '24px' }}>
-      
-      {/* Search Input Bar */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
-        <div style={{
-          position: 'relative',
-          flex: '1',
-          minWidth: '280px'
-        }}>
-          <Search
-            size={20}
-            color="var(--text-muted)"
-            style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }}
-          />
-          <input
-            type="text"
-            value={topic}
-            onChange={(e) => setTopic(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Enter research topic (e.g. Nvidia earnings, Claude 3.7, React 19, AI video tools)..."
-            style={{
-              width: '100%',
-              padding: '14px 44px 14px 48px',
-              background: 'rgba(0, 0, 0, 0.3)',
-              border: '1px solid var(--border-color)',
-              borderRadius: 'var(--radius-sm)',
-              color: 'var(--text-main)',
-              fontSize: '1rem',
-              outline: 'none',
-              transition: 'border-color 0.2s'
-            }}
-            onFocus={(e) => e.target.style.borderColor = 'var(--primary)'}
-            onBlur={(e) => e.target.style.borderColor = 'var(--border-color)'}
-          />
-          {topic && (
-            <button
-              onClick={() => setTopic('')}
-              style={{
-                position: 'absolute',
-                right: '14px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                background: 'none',
-                border: 'none',
-                color: 'var(--text-muted)',
-                cursor: 'pointer'
-              }}
-            >
-              <X size={18} />
-            </button>
-          )}
+    <div className="glass-bezel-outer" style={{ marginBottom: '24px' }}>
+      <div className="glass-bezel-inner">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
+          <span className="eyebrow-pill">
+            ✨ 14-Channel Autonomous Research Engine
+          </span>
+          <span style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span>✓</span> 한국어 자동 영문 합성 & 다국어 바이링구얼 수집 가동 중
+          </span>
         </div>
+        
+        {/* Search Input Bar */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '14px', marginBottom: '20px' }}>
+          <div style={{ position: 'relative', width: '100%' }}>
+            <Search
+              size={20}
+              color="var(--text-muted)"
+              style={{ position: 'absolute', left: '20px', top: '50%', transform: 'translateY(-50%)' }}
+            />
+            <input
+              type="text"
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="조사할 주제 또는 키워드를 입력하세요 (예: Claude 3.7, Nvidia 실적, DeepSeek V3, React 19)"
+              style={{
+                width: '100%',
+                padding: '16px 44px 16px 52px',
+                background: '#ffffff',
+                border: '1.5px solid var(--border-glass)',
+                borderRadius: '9999px',
+                color: '#0f172a',
+                fontSize: '1.05rem',
+                fontWeight: '600',
+                outline: 'none',
+                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02), 0 4px 14px rgba(37,99,235,0.06)'
+              }}
+            />
+            {topic && (
+              <button
+                onClick={() => setTopic('')}
+                style={{
+                  position: 'absolute',
+                  right: '18px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer'
+                }}
+              >
+                <X size={18} />
+              </button>
+            )}
+          </div>
 
-        <button
-          onClick={onSearch}
-          disabled={isLoading || !topic.trim()}
-          className="btn-primary"
-          style={{ padding: '14px 28px', fontSize: '1rem', whiteSpace: 'nowrap' }}
-        >
-          {isLoading ? (
-            <>
-              <div className="spinner" style={{ width: '18px', height: '18px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%' }} />
-              <span>Researching...</span>
-            </>
-          ) : (
-            <>
-              <Sparkles size={18} />
-              <span>Run Deep Research</span>
-            </>
-          )}
-        </button>
-      </div>
+          <button
+            onClick={onSearch}
+            disabled={isLoading || !topic.trim()}
+            className="btn-primary-pill"
+            style={{ fontSize: '1rem' }}
+          >
+            <span>{isLoading ? '수집 조사 중...' : '딥 리서치 가동'}</span>
+            <span className="btn-icon-circle">
+              {isLoading ? <div className="spinner" style={{ width: '18px', height: '18px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%' }} /> : <Sparkles size={18} />}
+            </span>
+          </button>
+        </div>
 
       {/* Advanced Filter Row */}
       <div style={{
