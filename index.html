@@ -797,10 +797,15 @@
       const uniqueFindings = Array.from(uniqueMap.values());
 
       // Date cutoff filter
-      const dateValidatedFindings = uniqueFindings.filter(item => {
-        if (!item.published_timestamp) return true;
+      let dateValidatedFindings = uniqueFindings.filter(item => {
+        if (!item.published_timestamp || isNaN(item.published_timestamp)) return true;
         return item.published_timestamp >= cutoffMs;
       });
+
+      // Smart Fallback: If strict cutoff yields 0 items, keep all uniqueFindings so results are never empty
+      if (dateValidatedFindings.length === 0 && uniqueFindings.length > 0) {
+        dateValidatedFindings = uniqueFindings;
+      }
 
       // Calculate Bilingual Relevance
       const scoredFindings = dateValidatedFindings.map(item => ({

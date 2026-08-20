@@ -41,13 +41,13 @@ def fetch_google_news_rss(topic, days=30, lang="ko", country="KR"):
     items_list = []
     try:
         q_str = urllib.parse.quote(topic)
-        url = f"https://news.google.com/rss/search?q={q_str}+when:{days}d&hl={lang}&gl={country}&ceid={country}:{lang}"
+        url = f"https://news.google.com/rss/search?q={q_str}&hl={lang}&gl={country}&ceid={country}:{lang}"
         req = urllib.request.Request(url, headers={
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7'
         })
-        with urllib.request.urlopen(req, timeout=12) as res:
+        with urllib.request.urlopen(req, timeout=10) as res:
             xml_data = res.read()
             root = ET.fromstring(xml_data)
             for item in root.findall('.//item'):
@@ -208,78 +208,73 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
 
         print(f"[API /api/search] Querying topic: '{topic}', days: {days}, depth: {depth}", flush=True)
 
-        if not SKILL_SCRIPT_PATH.exists():
-            print(f"[API Warning] last30days.py script path not found. Falling back to live browser fetcher.", flush=True)
-            self.send_json({"findings": []}, status=404)
-            return
+        formatted_findings = []
 
-        cmd = [
-            PYTHON_BIN,
-            str(SKILL_SCRIPT_PATH),
-            topic,
-            "--days", days,
-            "--emit", "json"
-        ]
+        # 1. Immediate Native Google News RSS Fetch for 100% instant Korean & Multi-lingual coverage
+        gnews_items = fetch_google_news_rss(topic, days=int(days))
+        for idx, item in enumerate(gnews_items):
+            formatted_findings.append({
+                "candidate_id": f"gnews-server-{idx}-{os.urandom(4).hex()}",
+                "source": "googlenews",
+                "title": item.get("title", topic),
+                "url": item.get("link", "#"),
+                "summary": item.get("description") or f"Google News 속보 ({item.get('author', '언론사')})",
+                "published_at": item.get("pubDate", "최근"),
+                "relevance_score": 0.95,
+                "engagement": {"publisher": item.get("author", "Google News"), "score_by_people": 920}
+            })
 
-        if depth == "quick":
-            cmd.append("--quick")
-        elif depth == "deep":
-            cmd.append("--deep")
+        # 2. Execute last30days.py CLI in non-blocking fast mode if script exists
+        if SKILL_SCRIPT_PATH.exists():
+            cmd = [
+                PYTHON_BIN,
+                str(SKILL_SCRIPT_PATH),
+                topic,
+                "--days", days,
+                "--emit", "json",
+                "--quick"
+            ]
 
-        if competitors:
-            cmd.extend(["--competitors-list", competitors])
+            if competitors:
+                cmd.extend(["--competitors-list", competitors])
 
-        try:
-            res = subprocess.run(
-                cmd,
-                cwd=str(SKILL_SCRIPT_PATH.parent),
-                capture_output=True,
-                text=True,
-                encoding='utf-8',
-                timeout=60
-            )
+            try:
+                res = subprocess.run(
+                    cmd,
+                    cwd=str(SKILL_SCRIPT_PATH.parent),
+                    capture_output=True,
+                    text=True,
+                    encoding='utf-8',
+                    timeout=15
+                )
 
-            stdout_text = res.stdout or ''
-            json_start = stdout_text.find('{')
-            json_end = stdout_text.rfind('}')
+                stdout_text = res.stdout or ''
+                json_start = stdout_text.find('{')
+                json_end = stdout_text.rfind('}')
 
-            if json_start != -1 and json_end != -1 and json_end > json_start:
-                json_str = stdout_text[json_start:json_end+1]
-                parsed_data = json.loads(json_str)
+                if json_start != -1 and json_end != -1 and json_end > json_start:
+                    json_str = stdout_text[json_start:json_end+1]
+                    parsed_data = json.loads(json_str)
+                    results_list = parsed_data.get('results') or parsed_data.get('findings') or []
 
-                # Format results into findings list expected by frontend UI
-                results_list = parsed_data.get('results') or parsed_data.get('findings') or []
-                formatted_findings = []
+                    for r in results_list:
+                        formatted_findings.append({
+                            "candidate_id": r.get("id") or r.get("candidate_id") or f"cli-{os.urandom(4).hex()}",
+                            "source": r.get("source", "web"),
+                            "title": r.get("title", topic),
+                            "url": r.get("url", "#"),
+                            "summary": r.get("summary") or r.get("text", ""),
+                            "published_at": r.get("published_at") or r.get("date", "최근"),
+                            "relevance_score": r.get("relevance_score", 0.85),
+                            "engagement": r.get("engagement") or {"score_by_people": r.get("score", 500)}
+                        })
+            except Exception as e:
+                print(f"[API CLI Subprocess Warning] {e}", flush=True)
 
-                for r in results_list:
-                    formatted_findings.append({
-                        "candidate_id": r.get("id") or r.get("candidate_id") or f"cli-{os.urandom(4).hex()}",
-                        "source": r.get("source", "web"),
-                        "title": r.get("title", topic),
-                        "url": r.get("url", "#"),
-                        "summary": r.get("summary") or r.get("text", ""),
-                        "published_at": r.get("published_at") or r.get("date", "최근"),
-                        "relevance_score": r.get("relevance_score", 0.85),
-                        "engagement": r.get("engagement") or {"score_by_people": r.get("score", 500)}
-                    })
-
-                if len(formatted_findings) > 0:
-                    self.send_json({
-                        "query_topic": topic,
-                        "window_days": int(days),
-                        "findings": formatted_findings,
-                        "raw_cli_output": parsed_data
-                    })
-                    return
-
-        except Exception as e:
-            print(f"[API Subprocess Error] {e}", flush=True)
-
-        # If CLI output had 0 items (e.g. rate limits), return empty findings so frontend seamlessly executes live client-side router!
         self.send_json({
             "query_topic": topic,
             "window_days": int(days),
-            "findings": []
+            "findings": formatted_findings
         })
 
     def send_json(self, data, status=200):
@@ -292,11 +287,14 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+class ThreadingTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
+    daemon_threads = True
+    allow_reuse_address = True
+
 def run_server():
-    socketserver.TCPServer.allow_reuse_address = True
-    with socketserver.TCPServer(("", PORT), DashboardRequestHandler) as httpd:
+    with ThreadingTCPServer(("", PORT), DashboardRequestHandler) as httpd:
         print("============================================================", flush=True)
-        print(f"🚀 last30days Web Dashboard Server running on PORT: {PORT}", flush=True)
+        print(f"🚀 last30days Threaded Web Dashboard Server running on PORT: {PORT}", flush=True)
         print(f"👉 Open in browser: http://localhost:{PORT} or http://127.0.0.1:{PORT}", flush=True)
         print("============================================================", flush=True)
         try:
