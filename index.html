@@ -159,6 +159,9 @@
     .badge-devto { background: #f3f4f6; color: #111827; border: 1px solid #e5e7eb; }
     .badge-stackoverflow { background: #fff7ed; color: #c2410c; border: 1px solid #ffedd5; }
     .badge-wikipedia { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
+    .badge-velog { background: #e6f4ea; color: #137333; border: 1px solid #ceedd6; }
+    .badge-producthunt { background: #ffedd5; color: #c2410c; border: 1px solid #fed7aa; }
+    .badge-medium { background: #f3f4f6; color: #1f2937; border: 1px solid #e5e7eb; }
 
     .btn-primary {
       background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
@@ -1023,6 +1026,9 @@
         switch ((source || '').toLowerCase()) {
           case 'alphaxiv': return 'badge-alphaxiv';
           case 'googlenews': return 'badge-googlenews';
+          case 'velog': return 'badge-velog';
+          case 'producthunt': return 'badge-producthunt';
+          case 'medium': return 'badge-medium';
           case 'websearch': return 'badge-websearch';
           case 'hackernews': return 'badge-hackernews';
           case 'reddit': return 'badge-reddit';

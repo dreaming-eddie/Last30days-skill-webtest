@@ -53,10 +53,11 @@ def translate_ko_to_en(text):
         print(f"[Translation API Warning] {e}", flush=True)
     return ""
 
-def fetch_google_news_rss(topic, days=30, lang="ko", country="KR"):
+def fetch_google_news_rss(topic, days=30, lang="ko", country="KR", site_filter=""):
     items_list = []
     try:
-        q_str = urllib.parse.quote(topic)
+        full_query = f"{topic} {site_filter}".strip() if site_filter else topic
+        q_str = urllib.parse.quote(full_query)
         url = f"https://news.google.com/rss/search?q={q_str}&hl={lang}&gl={country}&ceid={country}:{lang}"
         req = urllib.request.Request(url, headers={
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
@@ -167,12 +168,13 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
         days = params.get('days', ['30'])[0].strip()
         lang = params.get('lang', ['ko'])[0].strip()
         country = params.get('country', ['KR'])[0].strip()
+        site_filter = params.get('site', [''])[0].strip()
 
         if not topic:
             self.send_json({"items": []})
             return
 
-        items = fetch_google_news_rss(topic, days=days, lang=lang, country=country)
+        items = fetch_google_news_rss(topic, days=days, lang=lang, country=country, site_filter=site_filter)
         self.send_json({"topic": topic, "items": items})
 
     def handle_translate(self):
@@ -206,6 +208,9 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
             "sources": [
                 {"name": "alphaXiv", "type": "MCP Tools (discover_papers, get_paper_content, answer_pdf_queries)", "status": "Active"},
                 {"name": "Google News", "type": "Direct Native RSS Parser & Ad Filter (/api/gnews)", "status": "Active"},
+                {"name": "Velog & Tistory", "type": "Korean Tech Blogs RSS Engine", "status": "Active"},
+                {"name": "Product Hunt", "type": "Global AI & App Launches Engine", "status": "Active"},
+                {"name": "Medium & Substack", "type": "Global Deep-Dive Articles & Newsletters", "status": "Active"},
                 {"name": "HackerNews", "type": "Algolia Realtime API", "status": "Active"},
                 {"name": "Reddit", "type": "Public JSON / RSS Engine", "status": "Active"},
                 {"name": "GitHub", "type": "GitHub REST API (Stars 2-Tier Sort)", "status": "Active"},
@@ -240,9 +245,20 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
 
         formatted_findings = []
 
-        # 1. Immediate Native Google News RSS Fetch for Korean & English
+        # 1. Immediate Native Multi-Source Fetching
         translated_topic = translate_ko_to_en(topic)
         gnews_items = fetch_google_news_rss(topic, days=int(days))
+        
+        # Korean Tech Blogs (Velog & Tistory)
+        velog_items = fetch_google_news_rss(topic, days=int(days), lang="ko", country="KR", site_filter="site:velog.io OR site:tistory.com")
+        
+        # Product Hunt
+        target_ph_query = translated_topic if translated_topic else topic
+        ph_items = fetch_google_news_rss(target_ph_query, days=int(days), lang="en", country="US", site_filter="site:producthunt.com")
+        
+        # Medium & Substack
+        med_items = fetch_google_news_rss(target_ph_query, days=int(days), lang="en", country="US", site_filter="site:medium.com OR site:substack.com")
+
         if translated_topic and translated_topic.lower() != topic.lower():
             en_gnews = fetch_google_news_rss(translated_topic, days=int(days), lang="en", country="US")
             gnews_items.extend(en_gnews)
@@ -257,6 +273,42 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
                 "published_at": item.get("pubDate", "최근"),
                 "relevance_score": 0.95,
                 "engagement": {"publisher": item.get("author", "Google News"), "score_by_people": 920}
+            })
+
+        for idx, item in enumerate(velog_items):
+            formatted_findings.append({
+                "candidate_id": f"velog-server-{idx}-{os.urandom(4).hex()}",
+                "source": "velog",
+                "title": f"📗 [Velog/Tistory] {item.get('title', topic)}",
+                "url": item.get("link", "#"),
+                "summary": item.get("description") or f"국내 IT/테크 블로그 포스트 ({item.get('author', '블로그')})",
+                "published_at": item.get("pubDate", "최근"),
+                "relevance_score": 0.94,
+                "engagement": {"publisher": item.get("author", "Velog/Tistory"), "score_by_people": 890}
+            })
+
+        for idx, item in enumerate(ph_items):
+            formatted_findings.append({
+                "candidate_id": f"ph-server-{idx}-{os.urandom(4).hex()}",
+                "source": "producthunt",
+                "title": f"🚀 [Product Hunt] {item.get('title', topic)}",
+                "url": item.get("link", "#"),
+                "summary": item.get("description") or "Product Hunt 신규 AI 서비스 / 앱 출시 피드백",
+                "published_at": item.get("pubDate", "최근"),
+                "relevance_score": 0.92,
+                "engagement": {"publisher": "Product Hunt", "score_by_people": 910}
+            })
+
+        for idx, item in enumerate(med_items):
+            formatted_findings.append({
+                "candidate_id": f"med-server-{idx}-{os.urandom(4).hex()}",
+                "source": "medium",
+                "title": f"✍️ [Medium/Substack] {item.get('title', topic)}",
+                "url": item.get("link", "#"),
+                "summary": item.get("description") or "Medium / Substack 심층 분석 테크 칼럼 & 뉴스레터",
+                "published_at": item.get("pubDate", "최근"),
+                "relevance_score": 0.91,
+                "engagement": {"publisher": "Medium/Substack", "score_by_people": 880}
             })
 
         # 2. Execute last30days.py CLI in non-blocking fast mode if script exists
@@ -330,7 +382,7 @@ def run_server():
     with ThreadingTCPServer(("", PORT), DashboardRequestHandler) as httpd:
         print("============================================================", flush=True)
         print(f"🚀 last30days Threaded Web Dashboard Server running on PORT: {PORT}", flush=True)
-        print(f"👉 Open in browser: http://localhost:{PORT} or http://127.0.0.1:{PORT}", flush=True)
+        print(f"👉 Open in browser: http://localhost:3000 or http://127.0.0.1:{PORT}", flush=True)
         print("============================================================", flush=True)
         try:
             httpd.serve_forever()
