@@ -247,7 +247,7 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
 
         topic = req_json.get('topic', '').strip()
         days = str(req_json.get('days', 30))
-        depth = req_json.get('depth', 'quick')
+        depth = req_json.get('depth', 'deep')
         competitors = req_json.get('competitors', '').strip()
 
         if not topic:
@@ -354,7 +354,7 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
                 topic,
                 "--days", days,
                 "--emit", "json",
-                "--quick"
+                "--deep"
             ]
 
             if competitors:
@@ -367,7 +367,7 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
                     capture_output=True,
                     text=True,
                     encoding='utf-8',
-                    timeout=15
+                    timeout=35
                 )
 
                 stdout_text = res.stdout or ''

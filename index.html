@@ -467,7 +467,7 @@
       return md;
     }
 
-    async function fetchLiveClientResearch(queryTopic, searchDays = 30, searchDepth = 'quick') {
+    async function fetchLiveClientResearch(queryTopic, searchDays = 30) {
       const qObj = await processMixedLanguageQuery(queryTopic);
 
       const rawFindings = [];
@@ -485,7 +485,7 @@
         wikipedia: "ok"
       };
 
-      const perPage = searchDepth === 'deep' ? 25 : 12;
+      const perPage = 25;
       const nowMs = Date.now();
       const cutoffMs = nowMs - (Number(searchDays) * 24 * 60 * 60 * 1000);
       const cutoffSec = Math.floor(cutoffMs / 1000);
@@ -893,7 +893,6 @@
     function App() {
       const [topic, setTopic] = useState('Claude 3.7');
       const [days, setDays] = useState(30);
-      const [depth, setDepth] = useState('quick');
       const [selectedSources, setSelectedSources] = useState([]);
       const [competitors, setCompetitors] = useState('');
       
@@ -942,7 +941,7 @@
             ]
           }));
 
-        handleSearch('Claude 3.7', 30, 'quick');
+        handleSearch('Claude 3.7', 30);
       }, []);
 
       const load24HTrends = async () => {
@@ -952,7 +951,7 @@
         setIsFetchingTrends(false);
       };
 
-      const handleSearch = async (searchTopic = topic, searchDays = days, searchDepth = depth) => {
+      const handleSearch = async (searchTopic = topic, searchDays = days) => {
         if (!searchTopic.trim()) return;
 
         setIsLoading(true);
@@ -966,7 +965,7 @@
             body: JSON.stringify({
               topic: searchTopic,
               days: searchDays,
-              depth: searchDepth,
+              depth: 'deep',
               competitors: competitors
             })
           });
@@ -981,7 +980,7 @@
           }
 
           // Fallback to Live Multi-Source Research Engine
-          const liveData = await fetchLiveClientResearch(searchTopic, searchDays, searchDepth);
+          const liveData = await fetchLiveClientResearch(searchTopic, searchDays);
           setResultsData(liveData);
           setIsLoading(false);
         } catch (clientErr) {
@@ -1222,37 +1221,10 @@
                       ))}
                     </div>
                   </div>
-
-                  <div>
-                    <label style={{ fontSize: '0.8rem', fontWeight: '800', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                      ⚡ 탐색 깊이 (Research Depth)
-                    </label>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      {[
-                        { id: 'quick', label: 'Quick (빠른 수집)' },
-                        { id: 'deep', label: 'Deep (심층 탐색)' }
-                      ].map(dp => (
-                        <button
-                          key={dp.id}
-                          type="button"
-                          onClick={() => setDepth(dp.id)}
-                          style={{
-                            padding: '6px 14px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: '700',
-                            border: '1px solid', cursor: 'pointer',
-                            borderColor: depth === dp.id ? '#2563eb' : '#cbd5e1',
-                            background: depth === dp.id ? '#2563eb' : '#ffffff',
-                            color: depth === dp.id ? '#ffffff' : '#475569'
-                          }}
-                        >
-                          {dp.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
                 </div>
 
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', fontWeight: '600' }}>
-                  ✓ 자동 다국어 번역 & 10대 소스 통합 파이프라인 가동
+                  ✓ 자동 다국어 번역 & 14대 글로벌/국내 소스 실시간 수집 가동
                 </div>
 
               </div>
