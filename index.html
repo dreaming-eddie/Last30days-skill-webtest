@@ -281,7 +281,7 @@
       );
     };
 
-    function processMixedLanguageQuery(rawQuery) {
+    async function processMixedLanguageQuery(rawQuery) {
       const q = (rawQuery || '').trim();
       const engTokens = q.match(/[A-Za-z0-9.]+/g) || [];
       const korTokens = q.match(/[가-힣]+/g) || [];
@@ -290,6 +290,16 @@
       let expandedEngQueries = [];
 
       if (korTokens.length > 0) {
+        try {
+          const transRes = await fetch(`/api/translate?q=${encodeURIComponent(q)}`);
+          if (transRes.ok) {
+            const transData = await transRes.json();
+            if (transData && transData.translated && transData.translated.toLowerCase() !== q.toLowerCase()) {
+              expandedEngQueries.push(transData.translated);
+            }
+          }
+        } catch (tErr) {}
+
         let translatedTerms = [];
         korTokens.forEach(kt => {
           if (BILINGUAL_DICTIONARY[kt]) {
@@ -454,7 +464,7 @@
     }
 
     async function fetchLiveClientResearch(queryTopic, searchDays = 30, searchDepth = 'quick') {
-      const qObj = processMixedLanguageQuery(queryTopic);
+      const qObj = await processMixedLanguageQuery(queryTopic);
 
       const rawFindings = [];
       const sourceStatus = {

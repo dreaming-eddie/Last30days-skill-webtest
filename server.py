@@ -37,6 +37,22 @@ print(f"[Server] Workspace Root: {WORKSPACE_DIR}", flush=True)
 print(f"[Server] last30days.py Script Path: {SKILL_SCRIPT_PATH}", flush=True)
 print(f"[Server] Python Binary: {PYTHON_BIN}", flush=True)
 
+def translate_ko_to_en(text):
+    if not text or not any('\uac00' <= char <= '\ud7a3' for char in text):
+        return text
+    try:
+        q_str = urllib.parse.quote(text)
+        url = f"https://api.mymemory.translated.net/get?q={q_str}&langpair=ko|en"
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=5) as res:
+            data = json.loads(res.read().decode('utf-8'))
+            trans = data.get('responseData', {}).get('translatedText', '')
+            if trans and trans.lower() != text.lower():
+                return trans
+    except Exception as e:
+        print(f"[Translation API Warning] {e}", flush=True)
+    return ""
+
 def fetch_google_news_rss(topic, days=30, lang="ko", country="KR"):
     items_list = []
     try:
@@ -105,6 +121,8 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
             self.handle_doctor()
         elif path == '/api/gnews':
             self.handle_gnews()
+        elif path == '/api/translate':
+            self.handle_translate()
         elif path in ('', '/index.html'):
             self.serve_file(WORKSPACE_DIR / 'index.html', 'text/html; charset=utf-8')
         else:
@@ -156,6 +174,18 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
 
         items = fetch_google_news_rss(topic, days=days, lang=lang, country=country)
         self.send_json({"topic": topic, "items": items})
+
+    def handle_translate(self):
+        parsed = urllib.parse.urlparse(self.path)
+        params = urllib.parse.parse_qs(parsed.query)
+        topic = params.get('q', [''])[0].strip()
+
+        if not topic:
+            self.send_json({"original": "", "translated": ""})
+            return
+
+        trans = translate_ko_to_en(topic)
+        self.send_json({"original": topic, "translated": trans})
 
     def handle_doctor(self):
         script_exists = SKILL_SCRIPT_PATH.exists()
@@ -210,8 +240,13 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
 
         formatted_findings = []
 
-        # 1. Immediate Native Google News RSS Fetch for 100% instant Korean & Multi-lingual coverage
+        # 1. Immediate Native Google News RSS Fetch for Korean & English
+        translated_topic = translate_ko_to_en(topic)
         gnews_items = fetch_google_news_rss(topic, days=int(days))
+        if translated_topic and translated_topic.lower() != topic.lower():
+            en_gnews = fetch_google_news_rss(translated_topic, days=int(days), lang="en", country="US")
+            gnews_items.extend(en_gnews)
+
         for idx, item in enumerate(gnews_items):
             formatted_findings.append({
                 "candidate_id": f"gnews-server-{idx}-{os.urandom(4).hex()}",
