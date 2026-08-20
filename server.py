@@ -5,6 +5,9 @@ import subprocess
 import os
 import sys
 import urllib.parse
+import urllib.request
+import xml.etree.ElementTree as ET
+import re
 import socket
 from pathlib import Path
 
@@ -34,6 +37,55 @@ print(f"[Server] Workspace Root: {WORKSPACE_DIR}", flush=True)
 print(f"[Server] last30days.py Script Path: {SKILL_SCRIPT_PATH}", flush=True)
 print(f"[Server] Python Binary: {PYTHON_BIN}", flush=True)
 
+def fetch_google_news_rss(topic, days=30, lang="ko", country="KR"):
+    items_list = []
+    try:
+        q_str = urllib.parse.quote(topic)
+        url = f"https://news.google.com/rss/search?q={q_str}+when:{days}d&hl={lang}&gl={country}&ceid={country}:{lang}"
+        req = urllib.request.Request(url, headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7'
+        })
+        with urllib.request.urlopen(req, timeout=12) as res:
+            xml_data = res.read()
+            root = ET.fromstring(xml_data)
+            for item in root.findall('.//item'):
+                title_elem = item.find('title')
+                link_elem = item.find('link')
+                pubdate_elem = item.find('pubDate')
+                source_elem = item.find('source')
+                desc_elem = item.find('description')
+
+                title = title_elem.text if title_elem is not None else ""
+                link = link_elem.text if link_elem is not None else ""
+                pub_date = pubdate_elem.text if pubdate_elem is not None else ""
+                publisher = source_elem.text if source_elem is not None else ""
+                desc = desc_elem.text if desc_elem is not None else ""
+
+                if not publisher and "-" in title:
+                    publisher = title.split("-")[-1].strip()
+                    title = "-".join(title.split("-")[:-1]).strip()
+
+                clean_desc = re.sub(r'<[^>]+>', '', desc).strip()
+
+                # Ad filter check
+                title_lower = title.lower()
+                if any(ad_kw in title_lower for ad_kw in ["google ad", "sponsored", "광고", "ads", "advertiser"]):
+                    continue
+
+                if title and link:
+                    items_list.append({
+                        "title": title,
+                        "link": link,
+                        "pubDate": pub_date,
+                        "author": publisher or "Google News",
+                        "description": clean_desc
+                    })
+    except Exception as e:
+        print(f"[Google News Fetch Error] {e}", flush=True)
+    return items_list
+
 class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         print(f"[HTTP Request] {format % args}", flush=True)
@@ -51,6 +103,8 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
 
         if path == '/api/doctor':
             self.handle_doctor()
+        elif path == '/api/gnews':
+            self.handle_gnews()
         elif path in ('', '/index.html'):
             self.serve_file(WORKSPACE_DIR / 'index.html', 'text/html; charset=utf-8')
         else:
@@ -88,6 +142,21 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
             print(f"[Error serving {file_path}] {e}", flush=True)
             self.send_error(404, f"File Not Found: {e}")
 
+    def handle_gnews(self):
+        parsed = urllib.parse.urlparse(self.path)
+        params = urllib.parse.parse_qs(parsed.query)
+        topic = params.get('q', [''])[0].strip()
+        days = params.get('days', ['30'])[0].strip()
+        lang = params.get('lang', ['ko'])[0].strip()
+        country = params.get('country', ['KR'])[0].strip()
+
+        if not topic:
+            self.send_json({"items": []})
+            return
+
+        items = fetch_google_news_rss(topic, days=days, lang=lang, country=country)
+        self.send_json({"topic": topic, "items": items})
+
     def handle_doctor(self):
         script_exists = SKILL_SCRIPT_PATH.exists()
         response_data = {
@@ -106,7 +175,7 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
             },
             "sources": [
                 {"name": "alphaXiv", "type": "MCP Tools (discover_papers, get_paper_content, answer_pdf_queries)", "status": "Active"},
-                {"name": "Google News", "type": "RSS2JSON + Multi-Publisher Clustering & Ad Filter", "status": "Active"},
+                {"name": "Google News", "type": "Direct Native RSS Parser & Ad Filter (/api/gnews)", "status": "Active"},
                 {"name": "HackerNews", "type": "Algolia Realtime API", "status": "Active"},
                 {"name": "Reddit", "type": "Public JSON / RSS Engine", "status": "Active"},
                 {"name": "GitHub", "type": "GitHub REST API (Stars 2-Tier Sort)", "status": "Active"},

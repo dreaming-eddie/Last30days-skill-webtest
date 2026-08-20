@@ -240,6 +240,8 @@
     const { useState, useEffect } = React;
 
     const BILINGUAL_DICTIONARY = {
+      '스픽이지랩스': 'Speakeasy Labs Speak AI tutor English learning',
+      '스픽': 'Speak AI Speakeasy Labs English',
       '실적': 'earnings financial results quarterly report',
       '특징': 'features overview updates',
       '성능': 'benchmark performance metrics',
@@ -520,31 +522,51 @@
         } catch (err) {}
       }
 
-      // 2. Google News Korea & Global
+      // 2. Google News Native Server Proxy + Client Fallback
       try {
-        const gnewsKrUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(`https://news.google.com/rss/search?q=${encodeURIComponent(qObj.original)}+when:${searchDays}d&hl=ko&gl=KR&ceid=KR:ko`)}`;
-        const res = await fetch(gnewsKrUrl);
-        if (res.ok) {
-          const data = await res.json();
-          (data.items || []).slice(0, perPage).forEach(item => {
-            if (isAdItem(item)) return;
-            if (item.title && item.link) {
-              const cleanTitle = item.title.replace(/\s+-\s+[^-]+$/, '');
-              const publisher = item.author || (item.title.match(/-\s+([^-]+)$/) || [])[1] || 'Google News Korea';
-              
-              rawFindings.push({
-                candidate_id: `gnews-kr-${osHash(item.link)}`,
-                source: 'googlenews',
-                title: cleanTitle,
-                url: item.link,
-                summary: item.description ? item.description.replace(/<[^>]*>/g, '').slice(0, 220) + '...' : `Google News 한국 속보 (${publisher})`,
-                published_at: item.pubDate ? item.pubDate.split(' ')[0] : new Date().toISOString().split('T')[0],
-                published_timestamp: item.pubDate ? new Date(item.pubDate).getTime() : nowMs,
-                engagement: { publisher: publisher, points: 420, score_by_people: 920 }
-              });
+        let gnewsItems = [];
+        try {
+          const nativeRes = await fetch(`/api/gnews?q=${encodeURIComponent(qObj.original)}&days=${searchDays}`);
+          if (nativeRes.ok) {
+            const nativeData = await nativeRes.json();
+            if (nativeData && Array.isArray(nativeData.items) && nativeData.items.length > 0) {
+              gnewsItems = nativeData.items;
             }
-          });
+          }
+        } catch (nErr) {}
+
+        // Fallback to rss2json if native endpoint unavailable
+        if (gnewsItems.length === 0) {
+          const gnewsKrUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(`https://news.google.com/rss/search?q=${encodeURIComponent(qObj.original)}+when:${searchDays}d&hl=ko&gl=KR&ceid=KR:ko`)}`;
+          const res = await fetch(gnewsKrUrl);
+          if (res.ok) {
+            const data = await res.json();
+            gnewsItems = data.items || [];
+          }
         }
+
+        gnewsItems.forEach(item => {
+          if (isAdItem(item)) return;
+          const itemTitle = item.title || '';
+          const itemLink = item.link || item.guid || '';
+          if (itemTitle && itemLink) {
+            const cleanTitle = itemTitle.replace(/\s+-\s+[^-]+$/, '');
+            const publisher = item.author || item.publisher || (itemTitle.match(/-\s+([^-]+)$/) || [])[1] || 'Google News Korea';
+            const pubDateStr = item.pubDate ? new Date(item.pubDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+            const pubTs = item.pubDate ? new Date(item.pubDate).getTime() : nowMs;
+            
+            rawFindings.push({
+              candidate_id: `gnews-kr-${osHash(itemLink)}`,
+              source: 'googlenews',
+              title: cleanTitle,
+              url: itemLink,
+              summary: item.description ? item.description.replace(/<[^>]*>/g, '').slice(0, 220) + '...' : `Google News 한국 속보 (${publisher})`,
+              published_at: pubDateStr,
+              published_timestamp: pubTs,
+              engagement: { publisher: publisher, points: 420, score_by_people: 920 }
+            });
+          }
+        });
       } catch (err) {}
 
       // 3. Global Multi-Sources
