@@ -21,12 +21,12 @@
       --bg-base: #f8fafc;
       --bg-glass: rgba(255, 255, 255, 0.88);
       --bg-glass-hover: rgba(255, 255, 255, 0.98);
-      --border-glass: rgba(226, 232, 240, 0.8);
-      --border-highlight: rgba(37, 99, 235, 0.4);
+      --border-glass: rgba(226, 232, 240, 0.85);
+      --border-highlight: rgba(37, 99, 235, 0.45);
       
       --blue-primary: #2563eb;
       --blue-hover: #1d4ed8;
-      --blue-glow: rgba(37, 99, 235, 0.2);
+      --blue-glow: rgba(37, 99, 235, 0.25);
       --blue-light: #eff6ff;
       --blue-accent: #0284c7;
       
@@ -38,9 +38,9 @@
       --text-muted: #475569;
       --text-dim: #64748b;
 
-      --radius-sm: 10px;
-      --radius-md: 16px;
-      --radius-lg: 24px;
+      --radius-sm: 12px;
+      --radius-md: 20px;
+      --radius-lg: 28px;
 
       font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
@@ -71,8 +71,8 @@
       border-radius: 50%;
       filter: blur(90px);
       z-index: -2;
-      opacity: 0.55;
-      animation: floatGlow 12s infinite alternate ease-in-out;
+      opacity: 0.6;
+      animation: floatGlow 12s infinite alternate cubic-bezier(0.32, 0.72, 0, 1);
     }
 
     .glow-1 {
@@ -80,7 +80,7 @@
       left: 15%;
       width: 550px;
       height: 550px;
-      background: radial-gradient(circle, rgba(147, 51, 234, 0.2) 0%, rgba(59, 130, 246, 0.08) 70%, transparent 100%);
+      background: radial-gradient(circle, rgba(147, 51, 234, 0.22) 0%, rgba(59, 130, 246, 0.1) 70%, transparent 100%);
     }
 
     .glow-2 {
@@ -88,7 +88,7 @@
       right: 10%;
       width: 650px;
       height: 650px;
-      background: radial-gradient(circle, rgba(147, 197, 253, 0.25) 0%, rgba(99, 102, 241, 0.08) 70%, transparent 100%);
+      background: radial-gradient(circle, rgba(147, 197, 253, 0.28) 0%, rgba(99, 102, 241, 0.1) 70%, transparent 100%);
       animation-delay: -6s;
     }
 
@@ -113,39 +113,80 @@
       mask-image: linear-gradient(to right, rgba(0,0,0,1) 92%, rgba(0,0,0,0) 100%);
     }
 
+    /* High-End Double-Bezel (Doppelrand) Architecture */
+    .glass-bezel-outer {
+      background: rgba(255, 255, 255, 0.75);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1.5px solid rgba(226, 232, 240, 0.85);
+      padding: 8px;
+      border-radius: var(--radius-lg);
+      box-shadow: 0 20px 48px -12px rgba(37, 99, 235, 0.08), 0 4px 16px rgba(0, 0, 0, 0.02);
+      transition: all 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
+    .glass-bezel-outer:hover {
+      border-color: rgba(37, 99, 235, 0.35);
+      box-shadow: 0 24px 56px -12px rgba(37, 99, 235, 0.15), 0 8px 24px rgba(0, 0, 0, 0.03);
+    }
+
+    .glass-bezel-inner {
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid rgba(241, 245, 249, 1);
+      border-radius: calc(var(--radius-lg) - 8px);
+      padding: 24px;
+      box-shadow: inset 0 1px 1px rgba(255, 255, 255, 1);
+    }
+
     .glass-panel {
       background: var(--bg-glass);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid var(--border-glass);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1.5px solid var(--border-glass);
       border-radius: var(--radius-md);
-      box-shadow: 0 10px 30px -5px rgba(37, 99, 235, 0.04), 0 4px 12px rgba(0, 0, 0, 0.02);
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 12px 32px -6px rgba(37, 99, 235, 0.05), 0 4px 12px rgba(0, 0, 0, 0.02);
+      transition: all 0.4s cubic-bezier(0.32, 0.72, 0, 1);
     }
 
     .glass-panel-interactive:hover {
       background: var(--bg-glass-hover);
       border-color: var(--border-highlight);
-      box-shadow: 0 16px 36px -6px rgba(37, 99, 235, 0.12), 0 6px 16px rgba(0, 0, 0, 0.03);
-      transform: translateY(-2px);
+      box-shadow: 0 20px 44px -8px rgba(37, 99, 235, 0.14), 0 8px 20px rgba(0, 0, 0, 0.04);
+      transform: translateY(-3px);
+    }
+
+    .eyebrow-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 0.7rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      background: rgba(37, 99, 235, 0.08);
+      color: #2563eb;
+      border: 1px solid rgba(37, 99, 235, 0.2);
     }
 
     .app-container {
       max-width: 1280px;
       margin: 0 auto;
-      padding: 32px 24px 80px 24px;
+      padding: 40px 24px 80px 24px;
     }
 
     .badge-platform {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 4px 11px;
-      border-radius: 20px;
+      padding: 4px 12px;
+      border-radius: 9999px;
       font-size: 0.75rem;
-      font-weight: 700;
+      font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      transition: all 0.3s cubic-bezier(0.32, 0.72, 0, 1);
     }
 
     .badge-alphaxiv { background: var(--purple-light); color: var(--purple-primary); border: 1px solid var(--purple-border); }
@@ -164,6 +205,49 @@
     .badge-medium { background: #f3f4f6; color: #1f2937; border: 1px solid #e5e7eb; }
     .badge-scholar { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
 
+    /* Nested "Button-in-Button" Island Architecture */
+    .btn-primary-pill {
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      color: #ffffff;
+      font-weight: 700;
+      border: none;
+      border-radius: 9999px;
+      padding: 8px 10px 8px 24px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      transition: all 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+      box-shadow: 0 8px 24px -4px rgba(37, 99, 235, 0.35);
+    }
+
+    .btn-primary-pill:hover:not(:disabled) {
+      background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+      transform: translateY(-2px) scale(1.01);
+      box-shadow: 0 12px 32px -4px rgba(37, 99, 235, 0.45);
+    }
+
+    .btn-primary-pill:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+
+    .btn-icon-circle {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.22);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
+    .btn-primary-pill:hover .btn-icon-circle {
+      transform: scale(1.1) rotate(6deg);
+    }
+
     .btn-primary {
       background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
       color: #ffffff;
@@ -176,7 +260,7 @@
       align-items: center;
       justify-content: center;
       gap: 8px;
-      transition: all 0.2s ease;
+      transition: all 0.3s cubic-bezier(0.32, 0.72, 0, 1);
       box-shadow: 0 4px 16px var(--blue-glow);
     }
 
@@ -191,41 +275,42 @@
       color: #ffffff;
       font-weight: 700;
       border: none;
-      border-radius: 8px;
-      padding: 6px 14px;
+      border-radius: 9999px;
+      padding: 7px 16px;
       font-size: 0.8rem;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      transition: all 0.2s ease;
+      gap: 8px;
+      transition: all 0.3s cubic-bezier(0.32, 0.72, 0, 1);
     }
 
     .btn-purple:hover {
       background: linear-gradient(135deg, #7e22ce 0%, #6b21a8 100%);
-      transform: translateY(-1px);
+      transform: translateY(-2px) scale(1.02);
     }
 
     .btn-secondary {
       background: rgba(255, 255, 255, 0.95);
       color: var(--text-main);
-      border: 1px solid var(--border-glass);
-      border-radius: var(--radius-sm);
-      padding: 10px 18px;
-      font-weight: 600;
+      border: 1.5px solid var(--border-glass);
+      border-radius: 9999px;
+      padding: 10px 20px;
+      font-weight: 700;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      transition: all 0.2s ease;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+      transition: all 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
     }
 
     .btn-secondary:hover {
       background: #ffffff;
       border-color: var(--blue-primary);
       color: var(--blue-primary);
-      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
+      box-shadow: 0 6px 18px rgba(37, 99, 235, 0.12);
+      transform: translateY(-2px);
     }
 
     @keyframes spinSlow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
@@ -1162,131 +1247,158 @@
             </div>
           </div>
 
-          {/* 검색 패널 */}
-          <div className="glass-panel" style={{ padding: '32px', marginBottom: '32px', borderRadius: 'var(--radius-lg)' }}>
-            <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }}>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '14px', marginBottom: '20px' }}>
-                <input
-                  type="text"
-                  value={topic}
-                  onChange={(e) => setTopic(e.target.value)}
-                  placeholder="조사할 주제 또는 키워드를 입력하세요 (예: Claude 3.7, Nvidia 실적, DeepSeek V3, React 19)"
-                  style={{
-                    width: '100%', padding: '16px 20px', fontSize: '1.05rem', fontWeight: '600',
-                    borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border-glass)',
-                    background: '#ffffff', color: '#0f172a', outline: 'none',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
-                  }}
-                />
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="btn-primary"
-                  style={{ padding: '0 36px', fontSize: '1rem' }}
-                >
-                  {isLoading ? (
-                    <>
-                      <span className="spinner">🔄</span> 수집 조사 중...
-                    </>
-                  ) : (
-                    <>🔍 딥 리서치 실행</>
-                  )}
-                </button>
+          {/* High-End Double-Bezel Search Panel */}
+          <div className="glass-bezel-outer" style={{ marginBottom: '32px' }}>
+            <div className="glass-bezel-inner">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
+                <span className="eyebrow-pill">
+                  ✨ 14-Channel Autonomous Research Engine
+                </span>
+                <span style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>✓</span> 한국어 자동 영문 합성 & 다국어 바이링구얼 수집 가동 중
+                </span>
               </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', background: 'rgba(241, 245, 249, 0.6)', padding: '16px 20px', borderRadius: 'var(--radius-sm)' }}>
+              <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }}>
                 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
-                  <div>
-                    <label style={{ fontSize: '0.8rem', fontWeight: '800', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                      📅 조사 기간 (Lookback Days)
-                    </label>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      {[7, 14, 30, 90].map(d => (
-                        <button
-                          key={d}
-                          type="button"
-                          onClick={() => setDays(d)}
-                          style={{
-                            padding: '6px 14px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: '700',
-                            border: '1px solid', cursor: 'pointer',
-                            borderColor: days === d ? '#2563eb' : '#cbd5e1',
-                            background: days === d ? '#2563eb' : '#ffffff',
-                            color: days === d ? '#ffffff' : '#475569'
-                          }}
-                        >
-                          {d}일
-                        </button>
-                      ))}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '14px', marginBottom: '20px' }}>
+                  <input
+                    type="text"
+                    value={topic}
+                    onChange={(e) => setTopic(e.target.value)}
+                    placeholder="조사할 주제 또는 키워드를 입력하세요 (예: Claude 3.7, Nvidia 실적, DeepSeek V3, React 19)"
+                    style={{
+                      width: '100%', padding: '16px 24px', fontSize: '1.05rem', fontWeight: '600',
+                      borderRadius: '9999px', border: '1.5px solid var(--border-glass)',
+                      background: '#ffffff', color: '#0f172a', outline: 'none',
+                      boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02), 0 4px 14px rgba(37,99,235,0.06)'
+                    }}
+                  />
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="btn-primary-pill"
+                    style={{ fontSize: '1rem' }}
+                  >
+                    <span>{isLoading ? '수집 조사 중...' : '딥 리서치 가동'}</span>
+                    <span className="btn-icon-circle">
+                      {isLoading ? <span className="spinner" style={{ fontSize: '1rem' }}>🔄</span> : <span style={{ fontSize: '1.1rem' }}>🌊</span>}
+                    </span>
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', background: 'rgba(241, 245, 249, 0.65)', padding: '14px 22px', borderRadius: '9999px', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
+                  
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '18px', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '0.8rem', fontWeight: '800', color: 'var(--text-muted)' }}>
+                        📅 조사 기간 (Lookback Window):
+                      </span>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        {[7, 14, 30, 90].map(d => (
+                          <button
+                            key={d}
+                            type="button"
+                            onClick={() => setDays(d)}
+                            style={{
+                              padding: '5px 14px', borderRadius: '9999px', fontSize: '0.8rem', fontWeight: '800',
+                              border: '1px solid', cursor: 'pointer', transition: 'all 0.3s cubic-bezier(0.32, 0.72, 0, 1)',
+                              borderColor: days === d ? '#2563eb' : 'transparent',
+                              background: days === d ? 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)' : '#ffffff',
+                              color: days === d ? '#ffffff' : '#475569',
+                              boxShadow: days === d ? '0 4px 12px rgba(37,99,235,0.25)' : '0 2px 4px rgba(0,0,0,0.02)'
+                            }}
+                          >
+                            {d}일간
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
+
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', fontWeight: '700' }}>
+                    💡 선택된 {days}일 이내 게시글만 엄격 수집 및 랭킹 정렬
+                  </div>
+
                 </div>
 
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', fontWeight: '600' }}>
-                  ✓ 자동 다국어 번역 & 14대 글로벌/국내 소스 실시간 수집 가동
-                </div>
-
-              </div>
-
-            </form>
+              </form>
+            </div>
           </div>
 
-          {/* 소스 수집 현황 카드 Grid */}
+          {/* 소스 수집 현황 카드 Grid - Doppelrand Shell */}
           {resultsData && (
-            <div className="glass-panel" style={{ padding: '24px', marginBottom: '28px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', flexWrap: 'wrap', gap: '10px' }}>
-                <div>
-                  <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#0f172a' }}>
-                    📊 10+ Multi-Sources Breakdown
-                  </h3>
-                  <p style={{ fontSize: '0.84rem', color: 'var(--text-dim)', marginTop: '3px' }}>
-                    검색 키워드 <strong>"{resultsData.query_topic}"</strong>에 대해 수집된 총 <strong>{findings.length}개</strong> 항목
-                  </p>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' }}>
-                {[
-                  { name: 'alphaXiv', key: 'alphaxiv', icon: '📄' },
-                  { name: 'Google Scholar', key: 'googlescholar', icon: '🎓' },
-                  { name: 'Google News', key: 'googlenews', icon: '📰' },
-                  { name: 'Velog & Tistory', key: 'velog', icon: '📗' },
-                  { name: 'Product Hunt', key: 'producthunt', icon: '🚀' },
-                  { name: 'Medium & Substack', key: 'medium', icon: '✍️' },
-                  { name: 'Reddit', key: 'reddit', icon: '🔴' },
-                  { name: 'HackerNews', key: 'hackernews', icon: '🟠' },
-                  { name: 'GitHub', key: 'github', icon: '🐙' },
-                  { name: 'Bluesky', key: 'bluesky', icon: '🦋' },
-                  { name: 'YouTube', key: 'youtube', icon: '▶️' },
-                  { name: 'Dev.to', key: 'devto', icon: '👩‍💻' },
-                  { name: 'StackOverflow', key: 'stackoverflow', icon: '💬' },
-                  { name: 'Wikipedia', key: 'wikipedia', icon: '📚' }
-                ].map((src, idx) => {
-                  const count = findings.filter(f => (f.source || '').toLowerCase().includes(src.key)).length;
-                  return (
-                    <div key={idx} style={{ background: '#ffffff', padding: '14px', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.9)', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                        <span style={{ fontSize: '1.05rem' }}>{src.icon}</span>
-                        <span style={{ fontSize: '0.7rem', fontWeight: '800', color: count > 0 ? '#16a34a' : '#64748b', background: count > 0 ? '#f0fdf4' : '#f1f5f9', padding: '2px 7px', borderRadius: '10px' }}>
-                          {count > 0 ? 'Active' : 'Empty'}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: '0.84rem', fontWeight: '800', color: '#0f172a' }}>{src.name}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontWeight: '600', marginTop: '2px' }}>{count}개 항목 수집</div>
+            <div className="glass-bezel-outer" style={{ marginBottom: '32px' }}>
+              <div className="glass-bezel-inner">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+                  <div>
+                    <div className="eyebrow-pill" style={{ marginBottom: '6px' }}>
+                      📊 14+ Multi-Sources Breakdown
                     </div>
-                  );
-                })}
+                    <h3 style={{ fontSize: '1.2rem', fontWeight: '800', color: '#0f172a' }}>
+                      검색 키워드 <span style={{ color: '#2563eb' }}>"{resultsData.query_topic}"</span> 실시간 채널 분석
+                    </h3>
+                  </div>
+                  <span style={{ fontSize: '0.84rem', fontWeight: '800', background: '#dcfce7', color: '#15803d', padding: '6px 14px', borderRadius: '9999px', border: '1px solid #bbf7d0' }}>
+                    총 {findings.length}개 항목 수집 완료
+                  </span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' }}>
+                  {[
+                    { name: 'alphaXiv', key: 'alphaxiv', icon: '📄' },
+                    { name: 'Google Scholar', key: 'googlescholar', icon: '🎓' },
+                    { name: 'Google News', key: 'googlenews', icon: '📰' },
+                    { name: 'Velog & Tistory', key: 'velog', icon: '📗' },
+                    { name: 'Product Hunt', key: 'producthunt', icon: '🚀' },
+                    { name: 'Medium & Substack', key: 'medium', icon: '✍️' },
+                    { name: 'Reddit', key: 'reddit', icon: '🔴' },
+                    { name: 'HackerNews', key: 'hackernews', icon: '🟠' },
+                    { name: 'GitHub', key: 'github', icon: '🐙' },
+                    { name: 'Bluesky', key: 'bluesky', icon: '🦋' },
+                    { name: 'YouTube', key: 'youtube', icon: '▶️' },
+                    { name: 'Dev.to', key: 'devto', icon: '👩‍💻' },
+                    { name: 'StackOverflow', key: 'stackoverflow', icon: '💬' },
+                    { name: 'Wikipedia', key: 'wikipedia', icon: '📚' }
+                  ].map((src, idx) => {
+                    const count = findings.filter(f => (f.source || '').toLowerCase().includes(src.key)).length;
+                    return (
+                      <div
+                        key={idx}
+                        style={{
+                          background: count > 0 ? 'rgba(255, 255, 255, 0.98)' : 'rgba(248, 250, 252, 0.7)',
+                          padding: '14px', borderRadius: '16px',
+                          border: count > 0 ? '1.5px solid rgba(37, 99, 235, 0.25)' : '1px solid rgba(226, 232, 240, 0.8)',
+                          boxShadow: count > 0 ? '0 4px 14px rgba(37, 99, 235, 0.06)' : 'none',
+                          transition: 'all 0.3s cubic-bezier(0.32, 0.72, 0, 1)'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                          <span style={{ fontSize: '1.1rem' }}>{src.icon}</span>
+                          <span style={{ fontSize: '0.7rem', fontWeight: '800', color: count > 0 ? '#16a34a' : '#64748b', background: count > 0 ? '#f0fdf4' : '#f1f5f9', padding: '2px 8px', borderRadius: '9999px', border: count > 0 ? '1px solid #bbf7d0' : '1px solid #e2e8f0' }}>
+                            {count > 0 ? 'Verified' : 'Empty'}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.84rem', fontWeight: '800', color: '#0f172a' }}>{src.name}</div>
+                        <div style={{ fontSize: '0.75rem', color: count > 0 ? '#2563eb' : 'var(--text-dim)', fontWeight: '700', marginTop: '2px' }}>{count}개 수집</div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}
 
           {resultsData && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px', flexWrap: 'wrap', gap: '14px' }}>
-              <h2 style={{ fontSize: '1.35rem', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.3px' }}>
-                수집 결과: <span style={{ color: '#2563eb' }}>"{resultsData.query_topic}"</span> <span style={{ fontSize: '0.95rem', color: 'var(--text-dim)', fontWeight: '600' }}>({findings.length}개 항목 수집 완료)</span>
-              </h2>
-              <button onClick={() => setIsExportOpen(true)} className="btn-secondary" style={{ fontSize: '0.86rem', padding: '10px 18px', backgroundColor: '#eff6ff', borderColor: '#bfdbfe', color: '#2563eb', fontWeight: '700' }}>
+              <div>
+                <span className="eyebrow-pill" style={{ marginBottom: '6px' }}>
+                  🎯 Verified Findings Feed
+                </span>
+                <h2 style={{ fontSize: '1.4rem', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.3px', marginTop: '4px' }}>
+                  수집 결과: <span style={{ color: '#2563eb' }}>"{resultsData.query_topic}"</span> <span style={{ fontSize: '0.95rem', color: 'var(--text-dim)', fontWeight: '600' }}>({findings.length}개 항목 수집 완료)</span>
+                </h2>
+              </div>
+              <button onClick={() => setIsExportOpen(true)} className="btn-secondary" style={{ fontSize: '0.86rem', padding: '10px 20px', backgroundColor: '#eff6ff', borderColor: '#bfdbfe', color: '#2563eb', fontWeight: '800' }}>
                 📥 마크다운 (.md) 문서 내보내기
               </button>
             </div>
