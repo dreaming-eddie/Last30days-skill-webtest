@@ -152,55 +152,6 @@ export default function SearchControl({
           </div>
         </div>
 
-        {/* Research Depth Profile */}
-        <div>
-          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '8px' }}>
-            RESEARCH DEPTH
-          </label>
-          <div style={{ display: 'flex', gap: '6px' }}>
-            <button
-              onClick={() => setDepth('quick')}
-              style={{
-                flex: 1,
-                padding: '6px 12px',
-                fontSize: '0.85rem',
-                fontWeight: '600',
-                borderRadius: '6px',
-                border: depth === 'quick' ? '1px solid var(--accent-cyan)' : '1px solid var(--border-color)',
-                background: depth === 'quick' ? 'rgba(6, 182, 212, 0.15)' : 'rgba(255, 255, 255, 0.03)',
-                color: depth === 'quick' ? '#67e8f9' : 'var(--text-main)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '4px'
-              }}
-            >
-              <Zap size={14} /> Quick (⚡ Fast)
-            </button>
-            <button
-              onClick={() => setDepth('deep')}
-              style={{
-                flex: 1,
-                padding: '6px 12px',
-                fontSize: '0.85rem',
-                fontWeight: '600',
-                borderRadius: '6px',
-                border: depth === 'deep' ? '1px solid var(--accent-purple)' : '1px solid var(--border-color)',
-                background: depth === 'deep' ? 'rgba(139, 92, 246, 0.15)' : 'rgba(255, 255, 255, 0.03)',
-                color: depth === 'deep' ? '#c084fc' : 'var(--text-main)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '4px'
-              }}
-            >
-              <Sliders size={14} /> Deep (🔍 Multi-Angle)
-            </button>
-          </div>
-        </div>
-
         {/* Competitor / Versus Comparison */}
         <div>
           <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '8px' }}>

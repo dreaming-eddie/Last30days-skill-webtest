@@ -10,7 +10,6 @@ import { Download, Sparkles, AlertCircle, RefreshCw } from 'lucide-react';
 export default function App() {
   const [topic, setTopic] = useState('OpenAI');
   const [days, setDays] = useState(30);
-  const [depth, setDepth] = useState('quick');
   const [selectedSources, setSelectedSources] = useState([]);
   const [competitors, setCompetitors] = useState('');
   
@@ -29,10 +28,10 @@ export default function App() {
       .then(data => setDoctorStatus(data))
       .catch(err => console.error('Doctor check failed:', err));
 
-    handleSearch('OpenAI', 30, 'quick');
+    handleSearch('OpenAI', 30);
   }, []);
 
-  const handleSearch = (searchTopic = topic, searchDays = days, searchDepth = depth) => {
+  const handleSearch = (searchTopic = topic, searchDays = days) => {
     if (!searchTopic || !searchTopic.trim()) return;
 
     setIsLoading(true);
@@ -44,7 +43,7 @@ export default function App() {
       body: JSON.stringify({
         topic: searchTopic.trim(),
         days: searchDays,
-        depth: searchDepth,
+        depth: 'deep',
         sources: selectedSources,
         competitors: competitors.trim()
       })
@@ -66,7 +65,7 @@ export default function App() {
 
   const handlePresetSelect = (presetTopic) => {
     setTopic(presetTopic);
-    handleSearch(presetTopic, days, depth);
+    handleSearch(presetTopic, days);
   };
 
   return (
@@ -85,13 +84,11 @@ export default function App() {
         setTopic={setTopic}
         days={days}
         setDays={setDays}
-        depth={depth}
-        setDepth={setDepth}
         selectedSources={selectedSources}
         setSelectedSources={setSelectedSources}
         competitors={competitors}
         setCompetitors={setCompetitors}
-        onSearch={() => handleSearch(topic, days, depth)}
+        onSearch={() => handleSearch(topic, days)}
         isLoading={isLoading}
       />
 
@@ -100,7 +97,7 @@ export default function App() {
         <div className="glass-panel" style={{ padding: '16px 20px', marginBottom: '24px', borderColor: 'var(--accent-rose)', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <AlertCircle size={20} color="var(--accent-rose)" />
           <span style={{ fontSize: '0.9rem', color: '#fca5a5' }}>{error}</span>
-          <button onClick={() => handleSearch(topic, days, depth)} className="btn-secondary" style={{ marginLeft: 'auto', padding: '4px 10px', fontSize: '0.8rem' }}>
+          <button onClick={() => handleSearch(topic, days)} className="btn-secondary" style={{ marginLeft: 'auto', padding: '4px 10px', fontSize: '0.8rem' }}>
             <RefreshCw size={14} /> Retry
           </button>
         </div>
