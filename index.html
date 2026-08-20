@@ -930,12 +930,12 @@
           .then(data => setDoctorStatus(data))
           .catch(() => setDoctorStatus({
             status: 'ok',
-            version: 'v2.0',
+            version: 'v2.5 (Deep Research Engine)',
             features: [
-              '10+ Multi-Source Global Pipeline (alphaXiv, Google News, HackerNews, Reddit, GitHub, Bluesky, YouTube, Dev.to, StackOverflow, Wikipedia)',
+              '14+ Multi-Source Global & Local Pipeline (alphaXiv, Google Scholar, Google News, Velog/Tistory, Product Hunt, Medium/Substack, HackerNews, Reddit, GitHub, Bluesky, YouTube, Dev.to, StackOverflow, Wikipedia)',
               'Google News Multi-Publisher Story Clustering & Ad Filtering',
-              'Multi-Language & Multi-Keyword Concept Expansion Engine',
-              'Human Score Info Modal & Tooltip',
+              'Dynamic Bilingual Keyword Translation Engine (/api/translate)',
+              'Unified High-Recall Deep Research Architecture',
               'GitHub 2-Tier Sorting (1st Relevance, 2nd Stars Descending)',
               'Markdown (.md) Report Exporter'
             ]
@@ -1546,15 +1546,35 @@
           {/* Doctor Modal */}
           {isDoctorOpen && (
             <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-              <div className="glass-panel" style={{ background: '#ffffff', maxWidth: '650px', width: '100%', padding: '32px', borderRadius: 'var(--radius-lg)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: '800', color: '#0f172a' }}>🩺 System Health & Patch Notes</h3>
+              <div className="glass-panel" style={{ background: '#ffffff', maxWidth: '680px', width: '100%', maxHeight: '85vh', overflowY: 'auto', padding: '32px', borderRadius: 'var(--radius-lg)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', paddingBottom: '12px', borderBottom: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#0f172a' }}>🩺 last30days System Health & Patch Notes</h3>
+                    <span style={{ background: 'linear-gradient(135deg, #2563eb, #7c3aed)', color: '#fff', fontSize: '0.75rem', fontWeight: '800', padding: '3px 10px', borderRadius: '12px' }}>
+                      {doctorStatus?.version || 'v2.5 (Deep Research Engine)'}
+                    </span>
+                  </div>
                   <button onClick={() => setIsDoctorOpen(false)} style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer' }}>✕</button>
                 </div>
 
-                <pre style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', fontSize: '0.82rem', fontFamily: 'JetBrains Mono, monospace', color: '#334155', overflowX: 'auto', marginBottom: '20px' }}>
-                  {JSON.stringify(doctorStatus, null, 2)}
-                </pre>
+                <div style={{ display: 'grid', gap: '16px', marginBottom: '24px' }}>
+                  <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                    <h4 style={{ fontSize: '0.9rem', fontWeight: '800', color: '#1e293b', marginBottom: '8px' }}>🚀 v2.5 패치 노트 & 주요 업데이트 사항</h4>
+                    <ul style={{ fontSize: '0.84rem', color: '#334155', lineHeight: '1.7', paddingLeft: '18px' }}>
+                      <li><strong>14대 글로벌/국내 채널 확장</strong>: alphaXiv, Google Scholar, Google News, Velog/Tistory, Product Hunt, Medium/Substack, HackerNews, Reddit, GitHub, Bluesky, YouTube, Dev.to, StackOverflow, Wikipedia</li>
+                      <li><strong>90일 검색 0건 버그 완전 해결</strong>: 기간별 동적 파라미터 연동 및 RSS / API 타임스탬프 보정</li>
+                      <li><strong>동적 다국어 번역 엔진 (/api/translate)</strong>: 한국어 특화 검색어 자동 영문 합성 및 바이링구얼 연동</li>
+                      <li><strong>단일화 통합 서치 엔진</strong>: Quick/Deep 버튼을 통합하여 최대 재현율(Maximum Recall) 자동 가동</li>
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h4 style={{ fontSize: '0.88rem', fontWeight: '800', color: '#475569', marginBottom: '8px' }}>💻 시스템 진단 데이터 (JSON Raw Diagnostics)</h4>
+                    <pre style={{ background: '#0f172a', padding: '14px', borderRadius: '10px', fontSize: '0.78rem', fontFamily: 'JetBrains Mono, monospace', color: '#38bdf8', overflowX: 'auto', maxHeight: '200px' }}>
+                      {JSON.stringify(doctorStatus, null, 2)}
+                    </pre>
+                  </div>
+                </div>
 
                 <div style={{ textAlign: 'right' }}>
                   <button onClick={() => setIsDoctorOpen(false)} className="btn-primary" style={{ padding: '8px 20px', fontSize: '0.88rem' }}>닫기</button>

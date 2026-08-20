@@ -205,6 +205,8 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
         script_exists = SKILL_SCRIPT_PATH.exists()
         response_data = {
             "status": "ok",
+            "version": "v2.5 (Deep Research Engine)",
+            "description": "last30days v2.5 14+ Multi-Source Grounded Research Engine",
             "active_port": PORT,
             "python_bin": PYTHON_BIN,
             "script_path": str(SKILL_SCRIPT_PATH),

@@ -41,7 +41,10 @@ export default function DoctorModal({ isOpen, onClose }) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', paddingBottom: '12px', borderBottom: '1px solid var(--border-color)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Cpu size={22} color="var(--primary)" />
-            <h2 style={{ fontSize: '1.2rem', fontWeight: '700' }}>last30days Doctor & Environment Health</h2>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: '700' }}>last30days Doctor & System Health</h2>
+            <span style={{ background: 'linear-gradient(135deg, #2563eb, #7c3aed)', color: '#fff', fontSize: '0.75rem', fontWeight: '800', padding: '3px 10px', borderRadius: '12px' }}>
+              {doctorInfo?.version || 'v2.5 (Deep Research Engine)'}
+            </span>
           </div>
           <button
             onClick={onClose}
