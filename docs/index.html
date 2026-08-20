@@ -228,6 +228,7 @@
     .badge-producthunt { background: #ffedd5; color: #c2410c; border: 1px solid #fed7aa; }
     .badge-medium { background: #f3f4f6; color: #1f2937; border: 1px solid #e5e7eb; }
     .badge-scholar { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+    .badge-naver { background: #e6f4ea; color: #03c75a; border: 1px solid #86efac; }
 
     /* Nested "Button-in-Button" Island Architecture */
     .btn-primary-pill {
@@ -862,24 +863,53 @@
           }
         } catch (err) {}
 
-        // YouTube Search Feed
+        // YouTube Video Search Feed via Google News site:youtube.com
         try {
-          const ytUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(`https://www.youtube.com/feeds/videos.xml?search_query=${encodeURIComponent(globalQuery)}`)}`;
+          const ytQuery = `${globalQuery} site:youtube.com`;
+          const ytUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(`https://news.google.com/rss/search?q=${encodeURIComponent(ytQuery)}`)}`;
           const res = await fetch(ytUrl);
           if (res.ok) {
             const data = await res.json();
             (data.items || []).slice(0, perPage).forEach(item => {
               if (item.title && item.link) {
+                const cleanTitle = item.title.replace(/\s*-\s*YouTube$/i, '').replace(/\s+-\s+[^-]+$/, '');
                 const pubTs = item.pubDate ? new Date(item.pubDate).getTime() : nowMs;
                 rawFindings.push({
                   candidate_id: `yt-${osHash(item.link)}`,
                   source: 'youtube',
-                  title: `▶️ [YouTube] ${item.title}`,
+                  title: `▶️ [YouTube] ${cleanTitle}`,
                   url: item.link,
-                  summary: item.description ? item.description.replace(/<[^>]*>/g, '').slice(0, 240) + '...' : `YouTube deep-dive video by ${item.author || 'Creator'}`,
+                  summary: item.description ? item.description.replace(/<[^>]*>/g, '').slice(0, 240) + '...' : `YouTube 영상 콘텐츠`,
                   published_at: item.pubDate ? item.pubDate.split(' ')[0] : new Date().toISOString().split('T')[0],
                   published_timestamp: pubTs,
-                  engagement: { publisher: item.author || 'YouTube Channel', score_by_people: 880 }
+                  engagement: { publisher: 'YouTube Channel', score_by_people: 910 }
+                });
+              }
+            });
+          }
+        } catch (err) {}
+
+        // Naver Blog & News Search Feed
+        try {
+          const naverQuery = `${qObj.original} (site:naver.com OR site:blog.naver.com)`;
+          const naverUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(`https://news.google.com/rss/search?q=${encodeURIComponent(naverQuery)}&hl=ko&gl=KR&ceid=KR:ko`)}`;
+          const res = await fetch(naverUrl);
+          if (res.ok) {
+            const data = await res.json();
+            (data.items || []).slice(0, perPage).forEach(item => {
+              if (item.title && item.link) {
+                const cleanTitle = item.title.replace(/\s+-\s+[^-]+$/, '');
+                const pubDateStr = item.pubDate ? new Date(item.pubDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+                const pubTs = item.pubDate ? new Date(item.pubDate).getTime() : nowMs;
+                rawFindings.push({
+                  candidate_id: `naver-${osHash(item.link)}`,
+                  source: 'naver',
+                  title: `💚 [Naver] ${cleanTitle}`,
+                  url: item.link,
+                  summary: item.description ? item.description.replace(/<[^>]*>/g, '').slice(0, 240) + '...' : `네이버 블로그 / 뉴스 전문 콘텐츠`,
+                  published_at: pubDateStr,
+                  published_timestamp: pubTs,
+                  engagement: { publisher: '네이버 (Naver)', score_by_people: 930 }
                 });
               }
             });
@@ -1195,6 +1225,7 @@
           case 'alphaxiv': return 'badge-alphaxiv';
           case 'googlescholar': return 'badge-scholar';
           case 'googlenews': return 'badge-googlenews';
+          case 'naver': return 'badge-naver';
           case 'velog': return 'badge-velog';
           case 'producthunt': return 'badge-producthunt';
           case 'medium': return 'badge-medium';

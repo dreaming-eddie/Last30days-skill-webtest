@@ -267,6 +267,12 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
         # Korean Tech Blogs (Velog & Tistory)
         velog_items = fetch_google_news_rss(topic, days=int(days), lang="ko", country="KR", site_filter="site:velog.io OR site:tistory.com")
         
+        # Naver Blog & News
+        naver_items = fetch_google_news_rss(topic, days=int(days), lang="ko", country="KR", site_filter="site:naver.com OR site:blog.naver.com")
+        
+        # YouTube Videos
+        yt_items = fetch_google_news_rss(topic, days=int(days), lang="ko", country="KR", site_filter="site:youtube.com")
+        
         # Target Query for English Global Platforms
         target_ph_query = translated_topic if translated_topic else topic
 
@@ -282,6 +288,32 @@ class DashboardRequestHandler(http.server.BaseHTTPRequestHandler):
         if translated_topic and translated_topic.lower() != topic.lower():
             en_gnews = fetch_google_news_rss(translated_topic, days=int(days), lang="en", country="US")
             gnews_items.extend(en_gnews)
+
+        for idx, item in enumerate(naver_items):
+            formatted_findings.append({
+                "candidate_id": f"naver-server-{idx}-{os.urandom(4).hex()}",
+                "source": "naver",
+                "title": f"💚 [Naver] {item.get('title', topic)}",
+                "url": item.get("link", "#"),
+                "summary": item.get("description") or f"네이버 블로그 / 뉴스 전문 콘텐츠 ({item.get('author', '네이버')})",
+                "published_at": item.get("pubDate", "최근"),
+                "published_timestamp": item.get("published_timestamp", int(time.time() * 1000)),
+                "relevance_score": 0.95,
+                "engagement": {"publisher": item.get("author", "네이버"), "score_by_people": 940}
+            })
+
+        for idx, item in enumerate(yt_items):
+            formatted_findings.append({
+                "candidate_id": f"yt-server-{idx}-{os.urandom(4).hex()}",
+                "source": "youtube",
+                "title": f"▶️ [YouTube] {item.get('title', topic)}",
+                "url": item.get("link", "#"),
+                "summary": item.get("description") or f"YouTube 동영상 및 심층 콘텐츠 ({item.get('author', 'YouTube')})",
+                "published_at": item.get("pubDate", "최근"),
+                "published_timestamp": item.get("published_timestamp", int(time.time() * 1000)),
+                "relevance_score": 0.93,
+                "engagement": {"publisher": item.get("author", "YouTube Channel"), "score_by_people": 910}
+            })
 
         for idx, item in enumerate(scholar_items):
             formatted_findings.append({
