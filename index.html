@@ -590,25 +590,56 @@
     function calculateBilingualRelevance(queryObj, title = '', summary = '') {
       const tNorm = (title || '').toLowerCase();
       const sNorm = (summary || '').toLowerCase();
+      const combined = `${tNorm} ${sNorm}`;
 
-      const origNorm = queryObj.original.toLowerCase();
-      const globalTargets = queryObj.globalQueries.map(g => g.toLowerCase());
+      const origNorm = (queryObj.original || '').toLowerCase().trim();
+      const globalTargets = (queryObj.globalQueries || []).map(g => g.toLowerCase().trim());
 
+      // 1. Exact full phrase match in title or summary
       for (const target of [origNorm, ...globalTargets]) {
         if (!target) continue;
         if (tNorm.includes(target)) return 0.98;
-        if (sNorm.includes(target)) return 0.85;
+        if (sNorm.includes(target)) return 0.88;
       }
 
-      const tokens = origNorm.split(/\s+/).concat(globalTargets.flatMap(g => g.split(/\s+/)));
-      let matched = 0;
-      tokens.forEach(tok => {
-        if (tok.length > 1 && (tNorm.includes(tok) || sNorm.includes(tok))) matched++;
+      // 2. Primary Topic Anchor Matching (first 1-2 words of user query)
+      const primaryAnchors = [];
+      if (origNorm.split(/\s+/).length > 0) primaryAnchors.push(origNorm.split(/\s+/)[0]);
+      globalTargets.forEach(g => {
+        if (g.split(/\s+/).length > 0) primaryAnchors.push(g.split(/\s+/)[0]);
       });
 
-      if (matched > 0) return 0.75;
+      const anchorMatched = primaryAnchors.some(anchor => anchor.length > 1 && combined.includes(anchor));
 
-      return 0.40;
+      // If the primary topic anchor (e.g. "모성" or "maternity") is completely absent, discard as irrelevant!
+      if (!anchorMatched) {
+        return 0.35;
+      }
+
+      // 3. Korean Token Match
+      const korTokens = origNorm.match(/[가-힣0-9]+/g) || [];
+      if (korTokens.length > 0) {
+        let korMatched = 0;
+        korTokens.forEach(kt => {
+          if (combined.includes(kt)) korMatched++;
+        });
+        if (korMatched / korTokens.length >= 0.4) return 0.85;
+      }
+
+      // 4. English Token Match
+      const engTargets = globalTargets.filter(g => /[a-z]/i.test(g));
+      for (const engQ of engTargets) {
+        const engTokens = engQ.split(/\s+/).filter(t => t.length > 2);
+        if (engTokens.length > 0) {
+          let engMatched = 0;
+          engTokens.forEach(et => {
+            if (combined.includes(et)) engMatched++;
+          });
+          if (engMatched / engTokens.length >= 0.5) return 0.80;
+        }
+      }
+
+      return 0.35;
     }
 
     // Google News & Naver Multi-Publisher Story Clustering Engine
@@ -1116,14 +1147,22 @@
         dateValidatedFindings = uniqueFindings;
       }
 
-      // Calculate Bilingual Relevance
+      // Calculate Bilingual Relevance & Filter out Irrelevant Noise (relevance_score >= 0.70)
       const scoredFindings = dateValidatedFindings.map(item => ({
         ...item,
         relevance_score: calculateBilingualRelevance(qObj, item.title, item.summary)
       }));
 
+      let relevantFindings = scoredFindings.filter(item => item.relevance_score >= 0.70);
+      if (relevantFindings.length === 0 && scoredFindings.length > 0) {
+        relevantFindings = scoredFindings.filter(item => item.relevance_score >= 0.50);
+      }
+      if (relevantFindings.length === 0) {
+        relevantFindings = scoredFindings;
+      }
+
       // Apply Google News Multi-Publisher Story Clustering
-      const finalClusteredFindings = clusterGoogleNewsFindings(scoredFindings);
+      const finalClusteredFindings = clusterGoogleNewsFindings(relevantFindings);
 
       return {
         query_topic: queryTopic,
