@@ -462,6 +462,54 @@
         font-size: 1.05rem !important;
       }
     }
+
+    /* Source Card Hover Tooltip Styles */
+    .source-card {
+      position: relative;
+      cursor: pointer;
+    }
+
+    .source-card-tooltip {
+      position: absolute;
+      bottom: calc(100% + 12px);
+      left: 50%;
+      transform: translateX(-50%) translateY(6px);
+      width: 230px;
+      padding: 12px 14px;
+      background: rgba(15, 23, 42, 0.94);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      color: #ffffff;
+      border-radius: 14px;
+      font-size: 0.76rem;
+      line-height: 1.55;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.28);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      pointer-events: none;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+      z-index: 100;
+      text-align: left;
+      word-break: keep-all;
+    }
+
+    .source-card-tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 6px;
+      border-style: solid;
+      border-color: rgba(15, 23, 42, 0.94) transparent transparent transparent;
+    }
+
+    .source-card:hover .source-card-tooltip {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) translateY(0);
+    }
   </style>
 </head>
 <body>
@@ -1594,26 +1642,27 @@
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' }}>
                   {[
-                    { name: 'alphaXiv', key: 'alphaxiv', icon: '📄' },
-                    { name: 'Google Scholar', key: 'googlescholar', icon: '🎓' },
-                    { name: 'Google News', key: 'googlenews', icon: '📰' },
-                    { name: 'Naver Blog/News', key: 'naver', icon: '💚' },
-                    { name: 'Velog & Tistory', key: 'velog', icon: '📗' },
-                    { name: 'Product Hunt', key: 'producthunt', icon: '🚀' },
-                    { name: 'Medium & Substack', key: 'medium', icon: '✍️' },
-                    { name: 'Reddit', key: 'reddit', icon: '🔴' },
-                    { name: 'HackerNews', key: 'hackernews', icon: '🟠' },
-                    { name: 'GitHub', key: 'github', icon: '🐙' },
-                    { name: 'Bluesky', key: 'bluesky', icon: '🦋' },
-                    { name: 'YouTube', key: 'youtube', icon: '▶️' },
-                    { name: 'Dev.to', key: 'devto', icon: '👩‍💻' },
-                    { name: 'StackOverflow', key: 'stackoverflow', icon: '💬' },
-                    { name: 'Wikipedia', key: 'wikipedia', icon: '📚' }
+                    { name: 'alphaXiv', key: 'alphaxiv', icon: '📄', desc: '최신 AI/CS 학술 논문에 글로벌 연구원들의 토론과 피드백이 실시간 작성되는 논문 커뮤니티' },
+                    { name: 'Google Scholar', key: 'googlescholar', icon: '🎓', desc: '전 세계 학술지, 논문, 특허 및 학술 출판물을 종합 탐색하는 구글 전문 검색' },
+                    { name: 'Google News', key: 'googlenews', icon: '📰', desc: '전 세계 주요 메이저 언론사의 검증된 최신 뉴스 기사를 실시간 종합 수집하는 포털' },
+                    { name: 'Naver Blog/News', key: 'naver', icon: '💚', desc: '네이버 공식 뉴스 기사 및 실시간 트렌드 블로그/지식인 대표 국내 콘텐츠' },
+                    { name: 'Velog & Tistory', key: 'velog', icon: '📗', desc: '국내 IT 개발자 및 기술 에디터들이 최신 트렌드와 기술 경험을 기고하는 지식 블로그' },
+                    { name: 'Product Hunt', key: 'producthunt', icon: '🚀', desc: '글로벌 신규 스타트업, 신기술 AI 서비스, 획기적인 툴이 매일 첫선 보이는 플랫폼' },
+                    { name: 'Medium & Substack', key: 'medium', icon: '✍️', desc: '글로벌 기술 전문가, 분석가, 지식인들의 깊이 있는 인사이트 아티클 및 뉴스레터' },
+                    { name: 'Reddit', key: 'reddit', icon: '🔴', desc: '세계 최대 서브레딧 커뮤니티 기반의 실시간 반응, 업보트 피드백 및 대중 토론' },
+                    { name: 'HackerNews', key: 'hackernews', icon: '🟠', desc: 'Y Combinator 기반 스타트업/테크/엔지니어링 최고 권위의 기술 큐레이션 커뮤니티' },
+                    { name: 'GitHub', key: 'github', icon: '🐙', desc: '전 세계 오픈소스 개발자들의 코드 리포지토리, 이슈 및 Star/Fork 반응 수집 채널' },
+                    { name: 'Bluesky', key: 'bluesky', icon: '🦋', desc: '트위터(X) 창업자 잭 도시가 주도하는 탈중앙화 차세대 실시간 소셜 소통 커뮤니티' },
+                    { name: 'YouTube', key: 'youtube', icon: '▶️', desc: '글로벌 영상 크리에이터들의 실시간 리뷰, 튜토리얼 및 이슈 분석 영상 채널' },
+                    { name: 'Dev.to', key: 'devto', icon: '👩‍💻', desc: '전 세계 개발자들이 기술 팁, 프로그래밍 노하우 및 팁을 공유하는 개발자 커뮤니티' },
+                    { name: 'StackOverflow', key: 'stackoverflow', icon: '💬', desc: '글로벌 개발 이슈, 에러 해결 코드 및 Q&A 채택 답변 기술 데이터베이스' },
+                    { name: 'Wikipedia', key: 'wikipedia', icon: '📚', desc: '세계 최대 백과사전의 객관적 정의, 역사적 배경 및 통합 개요 지식' }
                   ].map((src, idx) => {
                     const count = findings.filter(f => (f.source || '').toLowerCase().includes(src.key)).length;
                     return (
                       <div
                         key={idx}
+                        className="source-card"
                         style={{
                           background: count > 0 ? 'rgba(255, 255, 255, 0.98)' : 'rgba(248, 250, 252, 0.7)',
                           padding: '14px', borderRadius: '16px',
@@ -1622,6 +1671,13 @@
                           transition: 'all 0.3s cubic-bezier(0.32, 0.72, 0, 1)'
                         }}
                       >
+                        <div className="source-card-tooltip">
+                          <div style={{ fontWeight: '800', marginBottom: '4px', color: '#60a5fa', fontSize: '0.8rem' }}>
+                            {src.icon} {src.name}
+                          </div>
+                          <div>{src.desc}</div>
+                        </div>
+
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                           <span style={{ fontSize: '1.1rem' }}>{src.icon}</span>
                           <span style={{ fontSize: '0.7rem', fontWeight: '800', color: count > 0 ? '#16a34a' : '#64748b', background: count > 0 ? '#f0fdf4' : '#f1f5f9', padding: '2px 8px', borderRadius: '9999px', border: count > 0 ? '1px solid #bbf7d0' : '1px solid #e2e8f0' }}>
