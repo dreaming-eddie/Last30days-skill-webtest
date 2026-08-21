@@ -1234,17 +1234,28 @@
       return Math.abs(hash).toString(36);
     }
 
+    const DEFAULT_HOT_TRENDS = [
+      { label: '🏠 수도권 아파트 집값 전망', topic: '부동산 집값' },
+      { label: '📈 미국 연준 기준금리 인하', topic: '기준금리 인하' },
+      { label: '🤖 Claude 3.7 Deep Research', topic: 'Claude 3.7' },
+      { label: '💻 Nvidia Blackwell GPU 실적', topic: 'Nvidia Blackwell' },
+      { label: '✈️ 2026 해외여행 인기 휴가지', topic: '해외여행 추천' },
+      { label: '🥗 간헐적 단식 다이어트 효과', topic: '다이어트 건강' },
+      { label: '💼 2026 채용시장 이직 트렌드', topic: '취업 이직 트렌드' },
+      { label: '⚡ DeepSeek V3 AI 모델', topic: 'DeepSeek V3' }
+    ];
+
     async function fetch24HTrendingTopics() {
       const dynamicTopics = [];
       try {
-        const res = await fetch('https://hn.algolia.com/api/v1/search_by_date?tags=story&hitsPerPage=12');
+        const res = await fetch('https://hn.algolia.com/api/v1/search_by_date?tags=story&hitsPerPage=15');
         if (res.ok) {
           const data = await res.json();
           (data.hits || []).forEach(item => {
             if (item.title) {
-              const cleanTitle = item.title.replace(/^Show HN:\s*/i, '').replace(/^Ask HN:\s*/i, '');
+              const cleanTitle = item.title.replace(/^Show HN:\s*/i, '').replace(/^Ask HN:\s*/i, '').trim();
               const words = cleanTitle.split(' ');
-              if (words.length <= 4 && !dynamicTopics.some(t => t.topic === cleanTitle)) {
+              if (words.length <= 7 && cleanTitle.length <= 40 && !dynamicTopics.some(t => t.topic === cleanTitle)) {
                 dynamicTopics.push({ label: `🔥 ${cleanTitle}`, topic: cleanTitle });
               }
             }
@@ -1253,16 +1264,9 @@
       } catch (err) {}
 
       if (dynamicTopics.length === 0) {
-        return [
-          { label: '🏠 수도권 아파트 집값 전망', topic: '부동산 집값' },
-          { label: '📈 미국 연준 기준금리 인하', topic: '기준금리 인하' },
-          { label: '🤖 Claude 3.7 Deep Research', topic: 'Claude 3.7' },
-          { label: '✈️ 2026 해외여행 인기 휴가지', topic: '해외여행 추천' },
-          { label: '🥗 간헐적 단식 다이어트 효과', topic: '다이어트 건강' },
-          { label: '💼 2026 채용시장 이직 트렌드', topic: '취업 이직 트렌드' }
-        ];
+        return DEFAULT_HOT_TRENDS;
       }
-      return dynamicTopics.slice(0, 8);
+      return [...dynamicTopics.slice(0, 4), ...DEFAULT_HOT_TRENDS.slice(0, 4)];
     }
 
     function App() {
@@ -1275,7 +1279,7 @@
       const [isLoading, setIsLoading] = useState(false);
       const [error, setError] = useState(null);
       
-      const [hotTrends, setHotTrends] = useState([]);
+      const [hotTrends, setHotTrends] = useState(DEFAULT_HOT_TRENDS);
       const [isFetchingTrends, setIsFetchingTrends] = useState(false);
 
       const [isDoctorOpen, setIsDoctorOpen] = useState(false);
